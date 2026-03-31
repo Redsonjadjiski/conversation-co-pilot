@@ -11,7 +11,13 @@ const personalities = [
   { id: "support", label: "Suporte Técnico", desc: "Responde dúvidas técnicas com precisão e objetividade." },
 ];
 
+const welcomeMessage = {
+  role: "assistant" as const,
+  text: "👋 Olá! Eu sou o agente CloserAI. Estou pronto para atender seus clientes! Faça um teste — me envie uma mensagem como se fosse um lead interessado.",
+};
+
 const mockMessages = [
+  welcomeMessage,
   { role: "user" as const, text: "Oi, quanto custa o plano?" },
   { role: "assistant" as const, text: "Olá! 😊 Temos opções a partir de R$97/mês. Posso te mostrar qual se encaixa melhor no seu negócio?" },
 ];

@@ -2,6 +2,7 @@ import { Users, Clock, Target } from "lucide-react";
 import { MetricCard } from "@/components/MetricCard";
 import { MessageChart } from "@/components/MessageChart";
 import { HotLeads } from "@/components/HotLeads";
+import { RevenueCard } from "@/components/RevenueCard";
 
 export default function Dashboard() {
   return (
@@ -10,6 +11,8 @@ export default function Dashboard() {
         <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
         <p className="text-sm text-muted-foreground mt-1">Visão geral do seu agente CloserAI</p>
       </div>
+
+      <RevenueCard />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <MetricCard
