@@ -1,80 +1,318 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plug, QrCode, Key, CheckCircle2, Zap, Check, Sparkles } from "lucide-react";
+import { Plug, Key, Brain, Webhook, Check, Zap, Sparkles, ChevronRight, AlertCircle, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+
+interface StepStatus {
+  openaiKey: string;
+  training: string;
+  webhookUrl: string;
+}
+
+function StepIndicator({ step, currentStep, completed }: { step: number; currentStep: number; completed: boolean }) {
+  const isActive = step === currentStep;
+  return (
+    <div className="flex items-center gap-3">
+      <div
+        className={`h-9 w-9 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 transition-all duration-300 ${
+          completed
+            ? "bg-success/20 text-success border border-success/30"
+            : isActive
+            ? "bg-primary/20 text-primary border border-primary/30 glow-border"
+            : "bg-muted text-muted-foreground border border-border/50"
+        }`}
+      >
+        {completed ? <Check className="h-4 w-4" /> : step}
+      </div>
+      {step < 3 && (
+        <div className={`hidden sm:block h-px w-8 transition-colors duration-300 ${completed ? "bg-success/40" : "bg-border/50"}`} />
+      )}
+    </div>
+  );
+}
 
 export default function Connection() {
+  const [currentStep, setCurrentStep] = useState(1);
   const [activated, setActivated] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [validating, setValidating] = useState(false);
+
+  const [fields, setFields] = useState<StepStatus>({
+    openaiKey: "",
+    training: "",
+    webhookUrl: "",
+  });
+
+  const [completed, setCompleted] = useState({ step1: false, step2: false, step3: false });
+
+  const isStep1Valid = fields.openaiKey.startsWith("sk-") && fields.openaiKey.length >= 20;
+  const isStep2Valid = fields.training.trim().length >= 50;
+  const isStep3Valid = fields.webhookUrl.startsWith("http") && fields.webhookUrl.length >= 10;
+  const allCompleted = completed.step1 && completed.step2 && completed.step3;
+
+  const handleValidateStep = (step: number) => {
+    setValidating(true);
+    setTimeout(() => {
+      setValidating(false);
+      if (step === 1 && isStep1Valid) {
+        setCompleted((prev) => ({ ...prev, step1: true }));
+        setCurrentStep(2);
+      } else if (step === 2 && isStep2Valid) {
+        setCompleted((prev) => ({ ...prev, step2: true }));
+        setCurrentStep(3);
+      } else if (step === 3 && isStep3Valid) {
+        setCompleted((prev) => ({ ...prev, step3: true }));
+      }
+    }, 800);
+  };
 
   const handleActivate = () => {
     setShowSuccess(true);
-    setTimeout(() => {
-      setActivated(true);
-    }, 2500);
+    setTimeout(() => setActivated(true), 2500);
   };
+
+  const stepTitles = [
+    { icon: Key, label: "Conecte sua Chave OpenAI" },
+    { icon: Brain, label: "Treine a IA" },
+    { icon: Webhook, label: "Ative o Webhook" },
+  ];
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
           <Plug className="h-6 w-6 text-primary" />
-          Conexão
+          Configuração
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">Configure a conexão com WhatsApp e APIs</p>
+        <p className="text-sm text-muted-foreground mt-1">Siga os 3 passos para ativar seu agente</p>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="glass-card rounded-2xl p-6"
-      >
-        <h3 className="font-semibold mb-1 flex items-center gap-2">
-          <QrCode className="h-5 w-5 text-primary" />
-          WhatsApp (Evolution API)
-        </h3>
-        <p className="text-sm text-muted-foreground mb-5">Conecte seu número do WhatsApp via QR Code</p>
-
-        <div className="flex flex-col items-center gap-4 py-8 border border-dashed border-border/50 rounded-xl bg-accent/20">
-          <div className="h-48 w-48 bg-muted rounded-xl flex items-center justify-center">
-            <QrCode className="h-20 w-20 text-muted-foreground/30" />
+      {/* Step indicators */}
+      <div className="flex items-center justify-center gap-2 sm:gap-0">
+        {[1, 2, 3].map((step) => (
+          <div key={step} className="flex items-center gap-2 sm:gap-0">
+            <button
+              onClick={() => {
+                if (step === 1 || (step === 2 && completed.step1) || (step === 3 && completed.step2)) {
+                  setCurrentStep(step);
+                }
+              }}
+              className="flex items-center gap-2 group"
+            >
+              <StepIndicator
+                step={step}
+                currentStep={currentStep}
+                completed={
+                  step === 1 ? completed.step1 : step === 2 ? completed.step2 : completed.step3
+                }
+              />
+              <span
+                className={`text-xs font-medium hidden sm:inline transition-colors ${
+                  currentStep === step ? "text-foreground" : "text-muted-foreground"
+                }`}
+              >
+                {stepTitles[step - 1].label}
+              </span>
+            </button>
+            {step < 3 && <ChevronRight className="h-4 w-4 text-muted-foreground/40 mx-1 hidden sm:block" />}
           </div>
-          <p className="text-sm text-muted-foreground">Escaneie o QR Code para conectar</p>
-          <Button variant="outline" className="rounded-xl">
-            Gerar QR Code
-          </Button>
-        </div>
-      </motion.div>
+        ))}
+      </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="glass-card rounded-2xl p-6 space-y-5"
-      >
-        <h3 className="font-semibold flex items-center gap-2">
-          <Key className="h-5 w-5 text-primary" />
-          Chaves de API
-        </h3>
+      {/* Step content */}
+      <AnimatePresence mode="wait">
+        {currentStep === 1 && (
+          <motion.div
+            key="step1"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.25 }}
+            className="glass-card rounded-2xl p-6 space-y-5"
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Key className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Passo 1: Chave OpenAI</h3>
+                <p className="text-sm text-muted-foreground">Insira sua API Key para conectar a IA</p>
+              </div>
+              {completed.step1 && (
+                <div className="ml-auto h-7 w-7 rounded-full bg-success/20 flex items-center justify-center">
+                  <Check className="h-4 w-4 text-success" />
+                </div>
+              )}
+            </div>
 
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm font-medium mb-1.5 block">URL da Evolution API</label>
-            <Input placeholder="https://sua-api.evolution.com" className="rounded-xl bg-background/50 border-border/50" />
-          </div>
-          <div>
-            <label className="text-sm font-medium mb-1.5 block">OpenAI API Key</label>
-            <Input type="password" placeholder="sk-..." className="rounded-xl bg-background/50 border-border/50" />
-          </div>
-          <Button className="rounded-xl">
-            <CheckCircle2 className="h-4 w-4 mr-1.5" />
-            Salvar Configurações
-          </Button>
-        </div>
-      </motion.div>
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">OpenAI API Key</label>
+              <Input
+                type="password"
+                value={fields.openaiKey}
+                onChange={(e) => setFields((f) => ({ ...f, openaiKey: e.target.value }))}
+                placeholder="sk-proj-..."
+                className="rounded-xl bg-background/50 border-border/50"
+              />
+              {fields.openaiKey.length > 0 && !isStep1Valid && (
+                <p className="text-xs text-destructive mt-1.5 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  A chave deve começar com "sk-" e ter pelo menos 20 caracteres
+                </p>
+              )}
+              {isStep1Valid && !completed.step1 && (
+                <p className="text-xs text-success mt-1.5 flex items-center gap-1">
+                  <Check className="h-3 w-3" />
+                  Formato válido
+                </p>
+              )}
+            </div>
 
-      {/* Activate Agent Button */}
+            <Button
+              onClick={() => handleValidateStep(1)}
+              disabled={!isStep1Valid || validating || completed.step1}
+              className="rounded-xl w-full"
+            >
+              {validating ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                  Validando...
+                </span>
+              ) : completed.step1 ? (
+                <span className="flex items-center gap-2"><Check className="h-4 w-4" /> Concluído</span>
+              ) : (
+                <span className="flex items-center gap-2">Validar e Continuar <ChevronRight className="h-4 w-4" /></span>
+              )}
+            </Button>
+          </motion.div>
+        )}
+
+        {currentStep === 2 && (
+          <motion.div
+            key="step2"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.25 }}
+            className="glass-card rounded-2xl p-6 space-y-5"
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Brain className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Passo 2: Treine a IA</h3>
+                <p className="text-sm text-muted-foreground">Cole informações sobre seu negócio (mínimo 50 caracteres)</p>
+              </div>
+              {completed.step2 && (
+                <div className="ml-auto h-7 w-7 rounded-full bg-success/20 flex items-center justify-center">
+                  <Check className="h-4 w-4 text-success" />
+                </div>
+              )}
+            </div>
+
+            <div>
+              <Textarea
+                value={fields.training}
+                onChange={(e) => setFields((f) => ({ ...f, training: e.target.value }))}
+                placeholder="Descreva seu produto, preços, diferenciais, FAQ, tom de voz desejado..."
+                className="min-h-[160px] bg-background/50 border-border/50 rounded-xl resize-none text-sm"
+              />
+              <div className="flex justify-between mt-1.5">
+                <p className={`text-xs ${fields.training.length >= 50 ? "text-success" : "text-muted-foreground"}`}>
+                  {fields.training.length}/50 caracteres {fields.training.length >= 50 ? "✓" : "(mínimo)"}
+                </p>
+              </div>
+            </div>
+
+            <Button
+              onClick={() => handleValidateStep(2)}
+              disabled={!isStep2Valid || validating || completed.step2}
+              className="rounded-xl w-full"
+            >
+              {validating ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                  Processando treinamento...
+                </span>
+              ) : completed.step2 ? (
+                <span className="flex items-center gap-2"><Check className="h-4 w-4" /> Concluído</span>
+              ) : (
+                <span className="flex items-center gap-2">Treinar e Continuar <ChevronRight className="h-4 w-4" /></span>
+              )}
+            </Button>
+          </motion.div>
+        )}
+
+        {currentStep === 3 && (
+          <motion.div
+            key="step3"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.25 }}
+            className="glass-card rounded-2xl p-6 space-y-5"
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Webhook className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Passo 3: Ative o Webhook</h3>
+                <p className="text-sm text-muted-foreground">URL da Evolution API para receber mensagens</p>
+              </div>
+              {completed.step3 && (
+                <div className="ml-auto h-7 w-7 rounded-full bg-success/20 flex items-center justify-center">
+                  <Check className="h-4 w-4 text-success" />
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">URL do Webhook (Evolution API)</label>
+              <Input
+                value={fields.webhookUrl}
+                onChange={(e) => setFields((f) => ({ ...f, webhookUrl: e.target.value }))}
+                placeholder="https://sua-api.evolution.com/webhook"
+                className="rounded-xl bg-background/50 border-border/50"
+              />
+              {fields.webhookUrl.length > 0 && !isStep3Valid && (
+                <p className="text-xs text-destructive mt-1.5 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Insira uma URL válida começando com http
+                </p>
+              )}
+              {isStep3Valid && !completed.step3 && (
+                <p className="text-xs text-success mt-1.5 flex items-center gap-1">
+                  <Check className="h-3 w-3" />
+                  URL válida
+                </p>
+              )}
+            </div>
+
+            <Button
+              onClick={() => handleValidateStep(3)}
+              disabled={!isStep3Valid || validating || completed.step3}
+              className="rounded-xl w-full"
+            >
+              {validating ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                  Testando conexão...
+                </span>
+              ) : completed.step3 ? (
+                <span className="flex items-center gap-2"><Check className="h-4 w-4" /> Concluído</span>
+              ) : (
+                <span className="flex items-center gap-2">Validar Webhook <Check className="h-4 w-4" /></span>
+              )}
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Activate button — only enabled when all steps done */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -133,22 +371,45 @@ export default function Connection() {
             </motion.div>
           ) : (
             <motion.div key="button" className="w-full flex flex-col items-center">
-              {/* Background glow */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="h-32 w-64 bg-primary/20 rounded-full blur-3xl animate-pulse-glow" />
-              </div>
+              {allCompleted && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="h-32 w-64 bg-primary/20 rounded-full blur-3xl animate-pulse-glow" />
+                </div>
+              )}
 
-              <Sparkles className="h-6 w-6 text-primary mb-3" />
-              <p className="text-sm text-muted-foreground mb-5 text-center">
-                Tudo configurado? Ative seu agente e comece a converter leads automaticamente.
-              </p>
+              {!allCompleted ? (
+                <>
+                  <Lock className="h-6 w-6 text-muted-foreground mb-3" />
+                  <p className="text-sm text-muted-foreground mb-4 text-center">
+                    Complete os 3 passos acima para desbloquear a ativação
+                  </p>
+                  <div className="flex gap-2 mb-4">
+                    {[completed.step1, completed.step2, completed.step3].map((done, i) => (
+                      <div
+                        key={i}
+                        className={`h-2 w-12 rounded-full transition-colors duration-500 ${
+                          done ? "bg-success" : "bg-muted"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <Sparkles className="h-6 w-6 text-primary mb-3" />
+              )}
 
               <button
                 onClick={handleActivate}
-                className="relative group w-full max-w-md py-4 px-8 rounded-2xl bg-primary text-primary-foreground font-bold text-lg tracking-wide transition-all duration-300 hover:scale-[1.03] active:scale-[0.98] overflow-hidden"
+                disabled={!allCompleted}
+                className={`relative group w-full max-w-md py-4 px-8 rounded-2xl font-bold text-lg tracking-wide transition-all duration-300 overflow-hidden ${
+                  allCompleted
+                    ? "bg-primary text-primary-foreground hover:scale-[1.03] active:scale-[0.98]"
+                    : "bg-muted text-muted-foreground cursor-not-allowed"
+                }`}
               >
-                {/* Shimmer effect */}
-                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-primary-foreground/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
+                {allCompleted && (
+                  <span className="absolute inset-0 bg-gradient-to-r from-transparent via-primary-foreground/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
+                )}
                 <span className="relative flex items-center justify-center gap-2">
                   <Zap className="h-5 w-5" />
                   ATIVAR AGENTE NO WHATSAPP
