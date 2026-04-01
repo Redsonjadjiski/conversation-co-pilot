@@ -115,24 +115,34 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
     }
   };
 
-  const handleValidateStep = (step: number) => {
+  const handleValidateStep = async (step: number) => {
     if (step === 1) {
       handleValidateStep1();
       return;
     }
     setValidating(true);
     onLog({ type: "info", message: step === 2 ? "Processando treinamento da IA..." : "Testando conexão do webhook..." });
-    setTimeout(() => {
-      setValidating(false);
-      if (step === 2 && isStep2Valid) {
-        setCompleted((prev) => ({ ...prev, step2: true }));
-        setCurrentStep(3);
-        onLog({ type: "success", message: "Treinamento salvo com sucesso!" });
-      } else if (step === 3 && isStep3Valid) {
-        setCompleted((prev) => ({ ...prev, step3: true }));
-        onLog({ type: "success", message: "Webhook ativo e funcionando!" });
-      }
-    }, 800);
+
+    // Simulate brief delay then save to Supabase
+    await new Promise((r) => setTimeout(r, 800));
+    setValidating(false);
+
+    if (step === 2 && isStep2Valid) {
+      await supabase
+        .from("configuracoes_ia")
+        .update({ instrucoes_sistema: fields.training })
+        .eq("id", 1);
+      setCompleted((prev) => ({ ...prev, step2: true }));
+      setCurrentStep(3);
+      onLog({ type: "success", message: "Treinamento salvo no banco com sucesso!" });
+    } else if (step === 3 && isStep3Valid) {
+      await supabase
+        .from("configuracoes_ia")
+        .update({ webhook_make: fields.webhookUrl })
+        .eq("id", 1);
+      setCompleted((prev) => ({ ...prev, step3: true }));
+      onLog({ type: "success", message: "Webhook salvo no banco e ativo!" });
+    }
   };
 
   const handleActivate = () => {
