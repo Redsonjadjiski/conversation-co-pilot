@@ -2,15 +2,20 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { DollarSign } from "lucide-react";
 
-export function RevenueCard() {
+interface RevenueCardProps {
+  totalRecuperado?: number;
+}
+
+export function RevenueCard({ totalRecuperado = 0 }: RevenueCardProps) {
   const [count, setCount] = useState(0);
-  const target = 184750;
+  const target = totalRecuperado > 0 ? totalRecuperado : 184750;
 
   useEffect(() => {
     const duration = 2000;
     const steps = 60;
     const increment = target / steps;
     let current = 0;
+    setCount(0);
     const timer = setInterval(() => {
       current += increment;
       if (current >= target) {
@@ -21,7 +26,7 @@ export function RevenueCard() {
       }
     }, duration / steps);
     return () => clearInterval(timer);
-  }, []);
+  }, [target]);
 
   return (
     <motion.div
