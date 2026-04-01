@@ -2,9 +2,13 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { DollarSign } from "lucide-react";
 
-export function RevenueCard() {
+interface RevenueCardProps {
+  totalRecuperado?: number;
+}
+
+export function RevenueCard({ totalRecuperado = 0 }: RevenueCardProps) {
   const [count, setCount] = useState(0);
-  const target = 184750;
+  const target = totalRecuperado > 0 ? totalRecuperado : 184750;
 
   useEffect(() => {
     const duration = 2000;
