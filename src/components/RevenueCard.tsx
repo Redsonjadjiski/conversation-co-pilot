@@ -15,6 +15,7 @@ export function RevenueCard({ totalRecuperado = 0 }: RevenueCardProps) {
     const steps = 60;
     const increment = target / steps;
     let current = 0;
+    setCount(0);
     const timer = setInterval(() => {
       current += increment;
       if (current >= target) {
@@ -25,7 +26,7 @@ export function RevenueCard({ totalRecuperado = 0 }: RevenueCardProps) {
       }
     }, duration / steps);
     return () => clearInterval(timer);
-  }, []);
+  }, [target]);
 
   return (
     <motion.div
