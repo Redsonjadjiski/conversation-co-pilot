@@ -126,7 +126,7 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
     setShowSuccess(true);
     setTimeout(() => {
       setActivated(true);
-      onLog({ type: "success", message: "🚀 Agente CloserAI ativado e online!" });
+      onLog({ type: "success", message: "🚀 Agente Atende AI ativado e online!" });
     }, 2500);
   };
 
