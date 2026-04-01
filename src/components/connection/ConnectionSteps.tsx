@@ -91,10 +91,23 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
 
     setValidating(false);
     if (result.valid) {
+      // Save to Supabase
+      const { error } = await supabase
+        .from("configuracoes_ia")
+        .update({ openai_api_key: fields.openaiKey })
+        .eq("id", 1);
+
+      if (error) {
+        // Try insert if row doesn't exist
+        await supabase
+          .from("configuracoes_ia")
+          .insert({ id: 1, openai_api_key: fields.openaiKey });
+      }
+
       setCompleted((prev) => ({ ...prev, step1: true }));
       setCurrentStep(2);
-      onLog({ type: "success", message: "Chave OpenAI validada com sucesso!" });
-      toast({ title: "✅ Chave válida!", description: "Conexão com a OpenAI confirmada." });
+      onLog({ type: "success", message: "Chave OpenAI validada e salva no banco!" });
+      toast({ title: "✅ Chave válida!", description: "Conexão com a OpenAI confirmada e salva." });
     } else {
       setApiError(result.error ?? "Erro desconhecido");
       onLog({ type: "error", message: `Falha na validação: ${result.error}` });
