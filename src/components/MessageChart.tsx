@@ -59,7 +59,7 @@ export function MessageChart() {
             <Area
               type="monotone"
               dataKey="messages"
-              stroke="hsl(217, 91%, 60%)"
+              stroke="hsl(160, 84%, 39%)"
               strokeWidth={2}
               fill="url(#blueGradient)"
             />

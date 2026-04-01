@@ -306,7 +306,7 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
                 </motion.div>
               </motion.div>
               <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="text-lg font-semibold">Agente Ativado com Sucesso! 🚀</motion.p>
-              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }} className="text-sm text-muted-foreground">Seu agente CloserAI está online e pronto para atender.</motion.p>
+              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }} className="text-sm text-muted-foreground">Seu agente Atende AI está online e pronto para atender.</motion.p>
             </motion.div>
           ) : activated ? (
             <motion.div key="activated" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-3 py-4">

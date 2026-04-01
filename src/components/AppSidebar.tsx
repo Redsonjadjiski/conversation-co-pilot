@@ -1,6 +1,7 @@
-import { Brain, LayoutDashboard, MessageSquare, Plug, CreditCard, Zap } from "lucide-react";
+import { Brain, LayoutDashboard, MessageSquare, Plug, CreditCard } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
+import logoImg from "@/assets/atende-ai-logo.png";
 import {
   Sidebar,
   SidebarContent,
@@ -29,12 +30,10 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-border/50">
       <SidebarContent className="pt-6">
         <div className="px-4 mb-8 flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
-            <Zap className="h-4 w-4 text-primary-foreground" />
-          </div>
+          <img src={logoImg} alt="Atende AI" className="h-8 w-8 rounded-lg shrink-0" />
           {!collapsed && (
             <span className="text-lg font-semibold tracking-tight gradient-text">
-              CloserAI
+              Atende AI
             </span>
           )}
         </div>
