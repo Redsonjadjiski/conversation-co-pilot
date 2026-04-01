@@ -8,7 +8,7 @@ const plans = [
     price: "R$97",
     period: "/mês",
     icon: Zap,
-    description: "Para quem está começando",
+    description: "Para quem está começando a automatizar",
     features: ["500 mensagens/mês", "1 agente de IA", "Suporte por email", "Dashboard básico"],
     popular: false,
   },
@@ -17,7 +17,7 @@ const plans = [
     price: "R$297",
     period: "/mês",
     icon: Crown,
-    description: "Para negócios em crescimento",
+    description: "Para negócios que querem escalar",
     features: ["Mensagens ilimitadas", "3 agentes de IA", "Lead Tracker avançado", "Suporte prioritário", "Integrações premium"],
     popular: true,
   },
@@ -26,7 +26,7 @@ const plans = [
     price: "R$797",
     period: "/mês",
     icon: Rocket,
-    description: "Para grandes operações",
+    description: "Para grandes operações de vendas",
     features: ["Tudo do Pro", "Agentes ilimitados", "API dedicada", "Gerente de conta", "SLA garantido", "White label"],
     popular: false,
   },
@@ -40,7 +40,7 @@ export default function Subscription() {
           <CreditCard className="h-6 w-6 text-primary" />
           Assinatura
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">Escolha o plano ideal para o seu negócio</p>
+        <p className="text-sm text-muted-foreground mt-1">Escolha o plano ideal para turbinar seu atendimento com o Atende AI</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-8">

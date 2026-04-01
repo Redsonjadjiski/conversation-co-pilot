@@ -31,8 +31,8 @@ export function MessageChart() {
           <AreaChart data={data}>
             <defs>
               <linearGradient id="blueGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0.3} />
-                <stop offset="100%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0} />
+                <stop offset="0%" stopColor="hsl(160, 84%, 39%)" stopOpacity={0.3} />
+                <stop offset="100%" stopColor="hsl(160, 84%, 39%)" stopOpacity={0} />
               </linearGradient>
             </defs>
             <XAxis
@@ -59,7 +59,7 @@ export function MessageChart() {
             <Area
               type="monotone"
               dataKey="messages"
-              stroke="hsl(217, 91%, 60%)"
+              stroke="hsl(160, 84%, 39%)"
               strokeWidth={2}
               fill="url(#blueGradient)"
             />

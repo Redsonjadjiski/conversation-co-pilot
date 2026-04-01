@@ -14,7 +14,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 217 91% 60%;
+    --primary: 160 84% 39%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 210 40% 96%;
@@ -31,22 +31,23 @@
 
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 217 91% 60%;
+    --ring: 160 84% 39%;
 
     --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary: 160 84% 39%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 210 40% 96%;
     --sidebar-accent-foreground: 222 47% 11%;
     --sidebar-border: 214 32% 91%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-ring: 160 84% 39%;
 
     /* Custom tokens */
     --glass: 0 0% 100% / 0.7;
-    --glow: 217 91% 60%;
+    --glow: 160 84% 39%;
+    --glow-secondary: 217 91% 60%;
     --surface: 210 40% 98%;
     --surface-foreground: 222 47% 11%;
     --success: 142 76% 36%;
@@ -71,7 +72,7 @@
     --popover: 222 47% 7%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 217 91% 60%;
+    --primary: 160 84% 39%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 217 33% 14%;
@@ -88,19 +89,20 @@
 
     --border: 217 33% 17%;
     --input: 217 33% 17%;
-    --ring: 217 91% 60%;
+    --ring: 160 84% 39%;
 
     --sidebar-background: 222 47% 5%;
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary: 160 84% 39%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 217 33% 12%;
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 217 33% 15%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-ring: 160 84% 39%;
 
     --glass: 222 47% 7% / 0.7;
-    --glow: 217 91% 60%;
+    --glow: 160 84% 39%;
+    --glow-secondary: 217 91% 60%;
     --surface: 222 47% 8%;
     --surface-foreground: 210 40% 98%;
     --success: 142 76% 36%;
@@ -133,11 +135,12 @@
   }
 
   .glow-border {
-    box-shadow: 0 0 20px -5px hsl(var(--glow) / 0.15);
+    box-shadow: 0 0 20px -5px hsl(var(--glow) / 0.15), 0 0 40px -10px hsl(var(--glow-secondary) / 0.1);
   }
 
   .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-400;
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(160, 84%, 39%), hsl(217, 91%, 60%));
   }
 
   .metric-card {

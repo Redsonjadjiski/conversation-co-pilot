@@ -13,7 +13,7 @@ const personalities = [
 
 const welcomeMessage = {
   role: "assistant" as const,
-  text: "👋 Olá! Eu sou o agente CloserAI. Estou pronto para atender seus clientes! Faça um teste — me envie uma mensagem como se fosse um lead interessado.",
+  text: "👋 Olá! Eu sou o agente Atende AI. Estou pronto para atender seus clientes! Faça um teste — me envie uma mensagem como se fosse um lead interessado.",
 };
 
 const mockMessages = [
@@ -45,11 +45,10 @@ export default function AIBrain() {
           <Brain className="h-6 w-6 text-primary" />
           Cérebro da IA
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">Treine o agente com o conhecimento do seu negócio</p>
+        <p className="text-sm text-muted-foreground mt-1">Treine o agente Atende AI com o conhecimento do seu negócio</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Left: Training */}
         <div className="lg:col-span-3 space-y-6">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -99,7 +98,6 @@ export default function AIBrain() {
           </motion.div>
         </div>
 
-        {/* Right: Chat simulator */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -113,7 +111,7 @@ export default function AIBrain() {
               </div>
               <div>
                 <p className="text-sm font-medium">Simulador de Chat</p>
-                <p className="text-[11px] text-muted-foreground">Teste as respostas da IA</p>
+                <p className="text-[11px] text-muted-foreground">Teste as respostas do Atende AI</p>
               </div>
             </div>
           </div>
