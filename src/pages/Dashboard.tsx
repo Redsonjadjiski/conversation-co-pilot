@@ -38,7 +38,8 @@ export default function Dashboard() {
 
       const { data: leads } = await supabase
         .from("leads")
-        .select("id, valor_recuperado");
+        .select("id, valor_recuperado")
+        .eq("user_id", user!.id);
 
       if (leads) {
         setTotalLeads(leads.length);

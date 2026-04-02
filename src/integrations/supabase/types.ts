@@ -48,6 +48,7 @@ export type Database = {
           nome: string | null
           status: string | null
           telefone: string | null
+          user_id: string | null
           valor_recuperado: number | null
         }
         Insert: {
@@ -56,6 +57,7 @@ export type Database = {
           nome?: string | null
           status?: string | null
           telefone?: string | null
+          user_id?: string | null
           valor_recuperado?: number | null
         }
         Update: {
@@ -64,6 +66,7 @@ export type Database = {
           nome?: string | null
           status?: string | null
           telefone?: string | null
+          user_id?: string | null
           valor_recuperado?: number | null
         }
         Relationships: []
