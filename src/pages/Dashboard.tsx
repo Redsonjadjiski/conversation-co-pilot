@@ -10,6 +10,8 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
+const ADMIN_EMAIL = "jadjiski.ia@gmail.com";
+
 export default function Dashboard() {
   const { user, subscription } = useAuth();
   const navigate = useNavigate();
@@ -17,6 +19,8 @@ export default function Dashboard() {
   const [totalLeads, setTotalLeads] = useState(0);
   const [totalRecuperado, setTotalRecuperado] = useState(0);
   const [hasConfig, setHasConfig] = useState(false);
+
+  const isDemo = user?.email === ADMIN_EMAIL;
 
   useEffect(() => {
     if (!user) return;

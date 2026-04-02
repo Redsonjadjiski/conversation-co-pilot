@@ -7,8 +7,14 @@ interface RevenueCardProps {
 }
 
 export function RevenueCard({ totalRecuperado = 0 }: RevenueCardProps) {
+interface RevenueCardProps {
+  totalRecuperado?: number;
+  isDemo?: boolean;
+}
+
+export function RevenueCard({ totalRecuperado = 0, isDemo = false }: RevenueCardProps) {
   const [count, setCount] = useState(0);
-  const target = totalRecuperado > 0 ? totalRecuperado : 184750;
+  const target = isDemo ? (totalRecuperado > 0 ? totalRecuperado : 184750) : totalRecuperado;
 
   useEffect(() => {
     const duration = 2000;
