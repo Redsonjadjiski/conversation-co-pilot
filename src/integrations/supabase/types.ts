@@ -20,6 +20,7 @@ export type Database = {
           instrucoes_sistema: string | null
           nome_empresa: string | null
           openai_api_key: string | null
+          user_id: string | null
           webhook_make: string | null
         }
         Insert: {
@@ -27,6 +28,7 @@ export type Database = {
           instrucoes_sistema?: string | null
           nome_empresa?: string | null
           openai_api_key?: string | null
+          user_id?: string | null
           webhook_make?: string | null
         }
         Update: {
@@ -34,6 +36,7 @@ export type Database = {
           instrucoes_sistema?: string | null
           nome_empresa?: string | null
           openai_api_key?: string | null
+          user_id?: string | null
           webhook_make?: string | null
         }
         Relationships: []
@@ -62,6 +65,72 @@ export type Database = {
           status?: string | null
           telefone?: string | null
           valor_recuperado?: number | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          plan: string | null
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
