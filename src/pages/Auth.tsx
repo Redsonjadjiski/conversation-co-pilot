@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { MessageSquare, Zap, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function Auth() {
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -44,6 +46,7 @@ export default function Auth() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast({ title: "✅ Login realizado!", description: "Bem-vindo de volta ao Atende AI." });
+        navigate("/dashboard", { replace: true });
       } else {
         const { error } = await supabase.auth.signUp({
           email, password,
@@ -54,6 +57,7 @@ export default function Auth() {
         });
         if (error) throw error;
         toast({ title: "✅ Cadastro realizado!", description: "Verifique seu e-mail para confirmar a conta." });
+        setIsLogin(true);
       }
     } catch (error: any) {
       toast({

@@ -128,24 +128,20 @@ export default function LandingPage() {
                 ))}
               </motion.div>
 
-              <motion.div variants={fadeUp} custom={1} className="text-5xl md:text-7xl font-black tracking-[0.08em] text-primary">
-                LANDING PAGE ATIVA
-              </motion.div>
-
-              <motion.h1 variants={fadeUp} custom={2} className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
+              <motion.h1 variants={fadeUp} custom={1} className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
                 Seu WhatsApp{" "}
                 <span className="gradient-text-neon">vendendo sozinho</span>{" "}
                 24h por dia com{" "}
                 <span className="gradient-text">Inteligência Artificial</span>
               </motion.h1>
 
-              <motion.p variants={fadeUp} custom={3} className="text-lg text-muted-foreground max-w-xl">
+              <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground max-w-xl">
                 A IA que responde, qualifica, envia proposta e fecha vendas no WhatsApp —{" "}
                 <strong className="text-foreground">enquanto você dorme</strong>
               </motion.p>
 
               {/* Mini stats */}
-              <motion.div variants={fadeUp} custom={4} className="flex flex-wrap gap-6">
+              <motion.div variants={fadeUp} custom={3} className="flex flex-wrap gap-6">
                 {stats.map((s) => (
                   <div key={s.label} className="flex items-center gap-2 text-sm">
                     <s.icon className="h-4 w-4 text-primary" />
@@ -156,7 +152,7 @@ export default function LandingPage() {
               </motion.div>
 
               {/* CTAs */}
-              <motion.div variants={fadeUp} custom={5} className="flex flex-wrap gap-4">
+              <motion.div variants={fadeUp} custom={4} className="flex flex-wrap gap-4">
                 <a href="#precos">
                   <Button size="lg" className="neon-cta rounded-xl text-base px-8">
                     Começar Agora <ArrowRight className="ml-2 h-5 w-5" />
@@ -169,7 +165,7 @@ export default function LandingPage() {
                 </a>
               </motion.div>
 
-              <motion.p variants={fadeUp} custom={6} className="text-xs text-muted-foreground">
+              <motion.p variants={fadeUp} custom={5} className="text-xs text-muted-foreground">
                 ✅ Sem cartão de crédito · Garantia de 7 dias · Cancele quando quiser
               </motion.p>
             </motion.div>
