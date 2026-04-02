@@ -4,13 +4,15 @@ import { DollarSign } from "lucide-react";
 
 interface RevenueCardProps {
   totalRecuperado?: number;
+  isDemo?: boolean;
 }
 
-export function RevenueCard({ totalRecuperado = 0 }: RevenueCardProps) {
+export function RevenueCard({ totalRecuperado = 0, isDemo = false }: RevenueCardProps) {
   const [count, setCount] = useState(0);
-  const target = totalRecuperado > 0 ? totalRecuperado : 184750;
+  const target = isDemo ? (totalRecuperado > 0 ? totalRecuperado : 184750) : totalRecuperado;
 
   useEffect(() => {
+    if (target === 0) { setCount(0); return; }
     const duration = 2000;
     const steps = 60;
     const increment = target / steps;
@@ -33,10 +35,10 @@ export function RevenueCard({ totalRecuperado = 0 }: RevenueCardProps) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="relative overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 via-card to-card p-6 glow-border"
+      className="relative overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/15 via-primary/5 to-card p-6 glow-border"
     >
-      {/* Glow orb */}
       <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-primary/10 blur-3xl animate-pulse-glow" />
+      <div className="absolute bottom-0 left-0 h-24 w-24 rounded-full bg-primary/5 blur-2xl" />
 
       <div className="relative z-10">
         <div className="flex items-center gap-3 mb-4">
@@ -51,9 +53,11 @@ export function RevenueCard({ totalRecuperado = 0 }: RevenueCardProps) {
         <p className="text-4xl font-bold tracking-tight gradient-text">
           R$ {count.toLocaleString("pt-BR")}
         </p>
-        <p className="text-xs text-muted-foreground mt-2">
-          Baseado em 42 leads quentes × ticket médio de R$4.398
-        </p>
+        {isDemo && (
+          <p className="text-xs text-muted-foreground mt-2">
+            Baseado em 42 leads quentes × ticket médio de R$4.398
+          </p>
+        )}
       </div>
     </motion.div>
   );
