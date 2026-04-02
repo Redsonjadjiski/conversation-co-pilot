@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 
 const navItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Cérebro da IA", url: "/brain", icon: Brain },
   { title: "Lead Tracker", url: "/leads", icon: MessageSquare },
   { title: "Conexão", url: "/connection", icon: Plug },
