@@ -22,7 +22,7 @@ export function MessageChart() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.2 }}
-      className="glass-card rounded-2xl p-6"
+      className="glass-card rounded-2xl p-6 gradient-border"
     >
       <h3 className="font-semibold mb-1">Volume de Mensagens</h3>
       <p className="text-sm text-muted-foreground mb-6">Últimas 24 horas</p>
@@ -30,38 +30,40 @@ export function MessageChart() {
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data}>
             <defs>
-              <linearGradient id="blueGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="hsl(160, 84%, 39%)" stopOpacity={0.3} />
-                <stop offset="100%" stopColor="hsl(160, 84%, 39%)" stopOpacity={0} />
+              <linearGradient id="neonGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="hsl(152, 76%, 44%)" stopOpacity={0.35} />
+                <stop offset="50%" stopColor="hsl(152, 76%, 44%)" stopOpacity={0.1} />
+                <stop offset="100%" stopColor="hsl(152, 76%, 44%)" stopOpacity={0} />
               </linearGradient>
             </defs>
             <XAxis
               dataKey="hour"
               axisLine={false}
               tickLine={false}
-              tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 11 }}
+              tick={{ fill: "hsl(215, 20%, 55%)", fontSize: 11 }}
             />
             <YAxis
               axisLine={false}
               tickLine={false}
-              tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 11 }}
+              tick={{ fill: "hsl(215, 20%, 55%)", fontSize: 11 }}
               width={30}
             />
             <Tooltip
               contentStyle={{
                 background: "hsl(222, 47%, 7%)",
-                border: "1px solid hsl(217, 33%, 17%)",
+                border: "1px solid hsl(222, 30%, 14%)",
                 borderRadius: "12px",
-                color: "hsl(210, 40%, 98%)",
+                color: "hsl(210, 40%, 96%)",
                 fontSize: "13px",
+                boxShadow: "0 0 20px hsl(152 76% 44% / 0.1)",
               }}
             />
             <Area
               type="monotone"
               dataKey="messages"
-              stroke="hsl(160, 84%, 39%)"
-              strokeWidth={2}
-              fill="url(#blueGradient)"
+              stroke="hsl(152, 76%, 44%)"
+              strokeWidth={2.5}
+              fill="url(#neonGradient)"
             />
           </AreaChart>
         </ResponsiveContainer>
