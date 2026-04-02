@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Key, Brain, Webhook, Check, Zap, Sparkles, ChevronRight, AlertCircle, Lock, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface StepStatus {
   openaiKey: string;
@@ -49,11 +50,11 @@ async function testOpenAIKey(apiKey: string): Promise<{ valid: boolean; error?: 
       headers: { Authorization: `Bearer ${apiKey}` },
     });
     if (response.ok) return { valid: true };
-    if (response.status === 401) return { valid: false, error: "Chave inválida ou expirada. Verifique no painel da OpenAI." };
-    if (response.status === 429) return { valid: false, error: "Rate limit atingido. Tente novamente em alguns segundos." };
-    return { valid: false, error: `Erro inesperado (HTTP ${response.status}). Tente novamente.` };
+    if (response.status === 401) return { valid: false, error: "Chave inválida ou expirada." };
+    if (response.status === 429) return { valid: false, error: "Rate limit atingido." };
+    return { valid: false, error: `Erro inesperado (HTTP ${response.status}).` };
   } catch {
-    return { valid: false, error: "Não foi possível conectar à OpenAI. Verifique sua internet." };
+    return { valid: false, error: "Não foi possível conectar à OpenAI." };
   }
 }
 
@@ -62,6 +63,7 @@ interface ConnectionStepsProps {
 }
 
 export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [activated, setActivated] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -77,10 +79,59 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
   const [completed, setCompleted] = useState({ step1: false, step2: false, step3: false });
   const [apiError, setApiError] = useState<string | null>(null);
 
+  // Load existing config
+  useEffect(() => {
+    if (!user) return;
+    async function loadConfig() {
+      const { data } = await supabase
+        .from("configuracoes_ia")
+        .select("*")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+
+      if (data) {
+        if (data.openai_api_key) {
+          setFields(f => ({ ...f, openaiKey: data.openai_api_key! }));
+          setCompleted(c => ({ ...c, step1: true }));
+        }
+        if (data.instrucoes_sistema && data.instrucoes_sistema.length >= 50) {
+          setFields(f => ({ ...f, training: data.instrucoes_sistema! }));
+          setCompleted(c => ({ ...c, step2: true }));
+        }
+        if (data.webhook_make) {
+          setFields(f => ({ ...f, webhookUrl: data.webhook_make! }));
+          setCompleted(c => ({ ...c, step3: true }));
+        }
+      }
+    }
+    loadConfig();
+  }, [user]);
+
   const isStep1Valid = fields.openaiKey.startsWith("sk-") && fields.openaiKey.length >= 20;
   const isStep2Valid = fields.training.trim().length >= 50;
   const isStep3Valid = fields.webhookUrl.startsWith("http") && fields.webhookUrl.length >= 10;
   const allCompleted = completed.step1 && completed.step2 && completed.step3;
+
+  const upsertConfig = async (data: Record<string, any>) => {
+    if (!user) return;
+    // Try update first
+    const { data: existing } = await supabase
+      .from("configuracoes_ia")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (existing) {
+      await supabase
+        .from("configuracoes_ia")
+        .update(data)
+        .eq("user_id", user.id);
+    } else {
+      await supabase
+        .from("configuracoes_ia")
+        .insert({ ...data, user_id: user.id });
+    }
+  };
 
   const handleValidateStep1 = async () => {
     setValidating(true);
@@ -88,60 +139,38 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
     onLog({ type: "info", message: "Testando chave da OpenAI..." });
 
     const result = await testOpenAIKey(fields.openaiKey);
-
     setValidating(false);
+
     if (result.valid) {
-      // Save to Supabase
-      const { error } = await supabase
-        .from("configuracoes_ia")
-        .update({ openai_api_key: fields.openaiKey })
-        .eq("id", 1);
-
-      if (error) {
-        // Try insert if row doesn't exist
-        await supabase
-          .from("configuracoes_ia")
-          .insert({ id: 1, openai_api_key: fields.openaiKey });
-      }
-
+      await upsertConfig({ openai_api_key: fields.openaiKey });
       setCompleted((prev) => ({ ...prev, step1: true }));
       setCurrentStep(2);
-      onLog({ type: "success", message: "Chave OpenAI validada e salva no banco!" });
-      toast({ title: "✅ Chave válida!", description: "Conexão com a OpenAI confirmada e salva." });
+      onLog({ type: "success", message: "Chave OpenAI validada e salva!" });
+      toast({ title: "✅ Chave válida!", description: "Conexão com a OpenAI confirmada." });
     } else {
       setApiError(result.error ?? "Erro desconhecido");
-      onLog({ type: "error", message: `Falha na validação: ${result.error}` });
+      onLog({ type: "error", message: `Falha: ${result.error}` });
       toast({ title: "❌ Chave inválida", description: result.error, variant: "destructive" });
     }
   };
 
   const handleValidateStep = async (step: number) => {
-    if (step === 1) {
-      handleValidateStep1();
-      return;
-    }
+    if (step === 1) { handleValidateStep1(); return; }
     setValidating(true);
-    onLog({ type: "info", message: step === 2 ? "Processando treinamento da IA..." : "Testando conexão do webhook..." });
+    onLog({ type: "info", message: step === 2 ? "Processando treinamento..." : "Testando webhook..." });
 
-    // Simulate brief delay then save to Supabase
     await new Promise((r) => setTimeout(r, 800));
     setValidating(false);
 
     if (step === 2 && isStep2Valid) {
-      await supabase
-        .from("configuracoes_ia")
-        .update({ instrucoes_sistema: fields.training })
-        .eq("id", 1);
+      await upsertConfig({ instrucoes_sistema: fields.training });
       setCompleted((prev) => ({ ...prev, step2: true }));
       setCurrentStep(3);
-      onLog({ type: "success", message: "Treinamento salvo no banco com sucesso!" });
+      onLog({ type: "success", message: "Treinamento salvo!" });
     } else if (step === 3 && isStep3Valid) {
-      await supabase
-        .from("configuracoes_ia")
-        .update({ webhook_make: fields.webhookUrl })
-        .eq("id", 1);
+      await upsertConfig({ webhook_make: fields.webhookUrl });
       setCompleted((prev) => ({ ...prev, step3: true }));
-      onLog({ type: "success", message: "Webhook salvo no banco e ativo!" });
+      onLog({ type: "success", message: "Webhook salvo e ativo!" });
     }
   };
 
@@ -194,7 +223,7 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
               </div>
               <div>
                 <h3 className="font-semibold">Passo 1: Chave OpenAI</h3>
-                <p className="text-sm text-muted-foreground">Insira sua API Key — ela será testada automaticamente</p>
+                <p className="text-sm text-muted-foreground">Insira sua API Key</p>
               </div>
               {completed.step1 && (
                 <div className="ml-auto h-7 w-7 rounded-full bg-success/20 flex items-center justify-center">
@@ -202,44 +231,17 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
                 </div>
               )}
             </div>
-
             <div>
               <label className="text-sm font-medium mb-1.5 block">OpenAI API Key</label>
-              <Input
-                type="password"
-                value={fields.openaiKey}
-                onChange={(e) => { setFields((f) => ({ ...f, openaiKey: e.target.value })); setApiError(null); }}
-                placeholder="sk-proj-..."
-                className="rounded-xl bg-background/50 border-border/50"
-              />
-              {apiError && (
-                <p className="text-xs text-destructive mt-1.5 flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  {apiError}
-                </p>
-              )}
-              {fields.openaiKey.length > 0 && !isStep1Valid && !apiError && (
-                <p className="text-xs text-destructive mt-1.5 flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  A chave deve começar com "sk-" e ter pelo menos 20 caracteres
-                </p>
-              )}
-              {isStep1Valid && !completed.step1 && !apiError && (
-                <p className="text-xs text-success mt-1.5 flex items-center gap-1">
-                  <Check className="h-3 w-3" />
-                  Formato válido — clique para testar a conexão
-                </p>
-              )}
+              <Input type="password" value={fields.openaiKey} onChange={(e) => { setFields((f) => ({ ...f, openaiKey: e.target.value })); setApiError(null); }} placeholder="sk-proj-..." className="rounded-xl bg-background/50 border-border/50" />
+              {apiError && <p className="text-xs text-destructive mt-1.5 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{apiError}</p>}
+              {fields.openaiKey.length > 0 && !isStep1Valid && !apiError && <p className="text-xs text-destructive mt-1.5 flex items-center gap-1"><AlertCircle className="h-3 w-3" />A chave deve começar com "sk-" e ter pelo menos 20 caracteres</p>}
+              {isStep1Valid && !completed.step1 && !apiError && <p className="text-xs text-success mt-1.5 flex items-center gap-1"><Check className="h-3 w-3" />Formato válido</p>}
             </div>
-
             <Button onClick={() => handleValidateStep(1)} disabled={!isStep1Valid || validating || completed.step1} className="rounded-xl w-full">
-              {validating ? (
-                <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Testando na OpenAI...</span>
-              ) : completed.step1 ? (
-                <span className="flex items-center gap-2"><Check className="h-4 w-4" /> Concluído</span>
-              ) : (
-                <span className="flex items-center gap-2">Testar Chave e Continuar <ChevronRight className="h-4 w-4" /></span>
-              )}
+              {validating ? <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Testando...</span>
+                : completed.step1 ? <span className="flex items-center gap-2"><Check className="h-4 w-4" /> Concluído</span>
+                : <span className="flex items-center gap-2">Testar Chave <ChevronRight className="h-4 w-4" /></span>}
             </Button>
           </motion.div>
         )}
@@ -254,14 +256,10 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
                 <h3 className="font-semibold">Passo 2: Treine a IA</h3>
                 <p className="text-sm text-muted-foreground">Cole informações sobre seu negócio (mínimo 50 caracteres)</p>
               </div>
-              {completed.step2 && (
-                <div className="ml-auto h-7 w-7 rounded-full bg-success/20 flex items-center justify-center">
-                  <Check className="h-4 w-4 text-success" />
-                </div>
-              )}
+              {completed.step2 && <div className="ml-auto h-7 w-7 rounded-full bg-success/20 flex items-center justify-center"><Check className="h-4 w-4 text-success" /></div>}
             </div>
             <div>
-              <Textarea value={fields.training} onChange={(e) => setFields((f) => ({ ...f, training: e.target.value }))} placeholder="Descreva seu produto, preços, diferenciais, FAQ, tom de voz desejado..." className="min-h-[160px] bg-background/50 border-border/50 rounded-xl resize-none text-sm" />
+              <Textarea value={fields.training} onChange={(e) => setFields((f) => ({ ...f, training: e.target.value }))} placeholder="Descreva seu produto, preços, diferenciais..." className="min-h-[160px] bg-background/50 border-border/50 rounded-xl resize-none text-sm" />
               <div className="flex justify-between mt-1.5">
                 <p className={`text-xs ${fields.training.length >= 50 ? "text-success" : "text-muted-foreground"}`}>
                   {fields.training.length}/50 caracteres {fields.training.length >= 50 ? "✓" : "(mínimo)"}
@@ -269,13 +267,9 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
               </div>
             </div>
             <Button onClick={() => handleValidateStep(2)} disabled={!isStep2Valid || validating || completed.step2} className="rounded-xl w-full">
-              {validating ? (
-                <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Processando treinamento...</span>
-              ) : completed.step2 ? (
-                <span className="flex items-center gap-2"><Check className="h-4 w-4" /> Concluído</span>
-              ) : (
-                <span className="flex items-center gap-2">Treinar e Continuar <ChevronRight className="h-4 w-4" /></span>
-              )}
+              {validating ? <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Processando...</span>
+                : completed.step2 ? <span className="flex items-center gap-2"><Check className="h-4 w-4" /> Concluído</span>
+                : <span className="flex items-center gap-2">Treinar e Continuar <ChevronRight className="h-4 w-4" /></span>}
             </Button>
           </motion.div>
         )}
@@ -288,32 +282,20 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
               </div>
               <div>
                 <h3 className="font-semibold">Passo 3: Ative o Webhook</h3>
-                <p className="text-sm text-muted-foreground">URL da Evolution API para receber mensagens</p>
+                <p className="text-sm text-muted-foreground">URL da Evolution API</p>
               </div>
-              {completed.step3 && (
-                <div className="ml-auto h-7 w-7 rounded-full bg-success/20 flex items-center justify-center">
-                  <Check className="h-4 w-4 text-success" />
-                </div>
-              )}
+              {completed.step3 && <div className="ml-auto h-7 w-7 rounded-full bg-success/20 flex items-center justify-center"><Check className="h-4 w-4 text-success" /></div>}
             </div>
             <div>
-              <label className="text-sm font-medium mb-1.5 block">URL do Webhook (Evolution API)</label>
+              <label className="text-sm font-medium mb-1.5 block">URL do Webhook</label>
               <Input value={fields.webhookUrl} onChange={(e) => setFields((f) => ({ ...f, webhookUrl: e.target.value }))} placeholder="https://sua-api.evolution.com/webhook" className="rounded-xl bg-background/50 border-border/50" />
-              {fields.webhookUrl.length > 0 && !isStep3Valid && (
-                <p className="text-xs text-destructive mt-1.5 flex items-center gap-1"><AlertCircle className="h-3 w-3" /> Insira uma URL válida começando com http</p>
-              )}
-              {isStep3Valid && !completed.step3 && (
-                <p className="text-xs text-success mt-1.5 flex items-center gap-1"><Check className="h-3 w-3" /> URL válida</p>
-              )}
+              {fields.webhookUrl.length > 0 && !isStep3Valid && <p className="text-xs text-destructive mt-1.5 flex items-center gap-1"><AlertCircle className="h-3 w-3" /> URL inválida</p>}
+              {isStep3Valid && !completed.step3 && <p className="text-xs text-success mt-1.5 flex items-center gap-1"><Check className="h-3 w-3" /> URL válida</p>}
             </div>
             <Button onClick={() => handleValidateStep(3)} disabled={!isStep3Valid || validating || completed.step3} className="rounded-xl w-full">
-              {validating ? (
-                <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Testando conexão...</span>
-              ) : completed.step3 ? (
-                <span className="flex items-center gap-2"><Check className="h-4 w-4" /> Concluído</span>
-              ) : (
-                <span className="flex items-center gap-2">Validar Webhook <Check className="h-4 w-4" /></span>
-              )}
+              {validating ? <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Testando...</span>
+                : completed.step3 ? <span className="flex items-center gap-2"><Check className="h-4 w-4" /> Concluído</span>
+                : <span className="flex items-center gap-2">Validar Webhook <Check className="h-4 w-4" /></span>}
             </Button>
           </motion.div>
         )}
@@ -330,7 +312,7 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
                 </motion.div>
               </motion.div>
               <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="text-lg font-semibold">Agente Ativado com Sucesso! 🚀</motion.p>
-              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }} className="text-sm text-muted-foreground">Seu agente Atende AI está online e pronto para atender.</motion.p>
+              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }} className="text-sm text-muted-foreground">Seu agente Atende AI está online.</motion.p>
             </motion.div>
           ) : activated ? (
             <motion.div key="activated" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-3 py-4">
@@ -347,7 +329,7 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
               {!allCompleted ? (
                 <>
                   <Lock className="h-6 w-6 text-muted-foreground mb-3" />
-                  <p className="text-sm text-muted-foreground mb-4 text-center">Complete os 3 passos acima para desbloquear a ativação</p>
+                  <p className="text-sm text-muted-foreground mb-4 text-center">Complete os 3 passos para desbloquear</p>
                   <div className="flex gap-2 mb-4">
                     {[completed.step1, completed.step2, completed.step3].map((done, i) => (
                       <div key={i} className={`h-2 w-12 rounded-full transition-colors duration-500 ${done ? "bg-success" : "bg-muted"}`} />
@@ -361,15 +343,17 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
                 onClick={handleActivate}
                 disabled={!allCompleted}
                 className={`relative group w-full max-w-md py-4 px-8 rounded-2xl font-bold text-lg tracking-wide transition-all duration-300 overflow-hidden ${
-                  allCompleted ? "bg-primary text-primary-foreground hover:scale-[1.03] active:scale-[0.98]" : "bg-muted text-muted-foreground cursor-not-allowed"
+                  allCompleted
+                    ? "bg-primary text-primary-foreground hover:brightness-110 shadow-lg shadow-primary/25"
+                    : "bg-muted text-muted-foreground cursor-not-allowed"
                 }`}
               >
                 {allCompleted && (
-                  <span className="absolute inset-0 bg-gradient-to-r from-transparent via-primary-foreground/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                 )}
                 <span className="relative flex items-center justify-center gap-2">
                   <Zap className="h-5 w-5" />
-                  ATIVAR AGENTE NO WHATSAPP
+                  Ativar Agente no WhatsApp
                 </span>
               </button>
             </motion.div>
