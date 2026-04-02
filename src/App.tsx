@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,10 +15,18 @@ import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
   const { user, loading } = useAuth();
   if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Carregando...</div>;
-  if (!user) return <Navigate to="/" replace />;
+  if (!user) return <Navigate to="/auth" replace state={{ from: location.pathname }} />;
   return <>{children}</>;
+}
+
+function AuthRoute() {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Carregando...</div>;
+  if (user) return <Navigate to="/dashboard" replace />;
+  return <Auth />;
 }
 
 const App = () => (
@@ -29,7 +37,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/auth" element={<Auth />} />
+          <Route path="/auth" element={<AuthRoute />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/dashboard" element={<ProtectedRoute><AppLayout><Dashboard /></AppLayout></ProtectedRoute>} />
           <Route path="/brain" element={<ProtectedRoute><AppLayout><AIBrain /></AppLayout></ProtectedRoute>} />

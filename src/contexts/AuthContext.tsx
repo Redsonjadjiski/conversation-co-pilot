@@ -43,13 +43,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
+
     const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      (_event, session) => {
+        if (!isMounted) return;
         setSession(session);
         setUser(session?.user ?? null);
-        setLoading(false);
         if (session?.user) {
-          setTimeout(() => checkSubscription(), 0);
+          setTimeout(() => {
+            void checkSubscription();
+          }, 0);
         } else {
           setSubscription({ subscribed: false });
         }
@@ -57,15 +61,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted) return;
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
       if (session?.user) {
-        checkSubscription();
+        void checkSubscription();
+      } else {
+        setSubscription({ subscribed: false });
       }
     });
 
-    return () => authSub.unsubscribe();
+    return () => {
+      isMounted = false;
+      authSub.unsubscribe();
+    };
   }, [checkSubscription]);
 
   // Auto-refresh subscription every 60s
