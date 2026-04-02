@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Users, Clock, Target, AlertTriangle } from "lucide-react";
+import { Users, Clock, Target, AlertTriangle, Plug, Brain, TrendingUp } from "lucide-react";
 import { MetricCard } from "@/components/MetricCard";
 import { MessageChart } from "@/components/MessageChart";
 import { HotLeads } from "@/components/HotLeads";
@@ -10,8 +10,30 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 const ADMIN_EMAIL = "jadjiski.ia@gmail.com";
+
+const howItWorksSteps = [
+  {
+    step: 1,
+    icon: Plug,
+    title: "Conexão de API",
+    description: "Conecte sua chave da OpenAI e o webhook da Evolution API em poucos cliques.",
+  },
+  {
+    step: 2,
+    icon: Brain,
+    title: "Treinamento da IA",
+    description: "Alimente o agente com informações do seu negócio para respostas personalizadas.",
+  },
+  {
+    step: 3,
+    icon: TrendingUp,
+    title: "Recuperação de Vendas",
+    description: "A IA atende, qualifica e recupera leads automaticamente 24/7 no WhatsApp.",
+  },
+];
 
 export default function Dashboard() {
   const { user, subscription } = useAuth();
@@ -54,22 +76,21 @@ export default function Dashboard() {
 
   const showWarning = !subscription.subscribed || !hasConfig;
 
-  // Demo values
   const displayLeads = isDemo && totalLeads === 0 ? 1247 : totalLeads;
   const displayHours = isDemo && totalLeads === 0 ? "187h" : (totalLeads > 0 ? `${Math.round(totalLeads * 0.15)}h` : "0h");
   const displayRate = isDemo && totalLeads === 0 ? "68.4%" : (totalLeads > 0 ? "68.4%" : "0%");
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-8">
       <div className="flex items-center gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Bem-vindo ao {nomeEmpresa}, seu braço direito nas vendas
+            Bem-vindo ao <span className="gradient-text-neon font-semibold">{nomeEmpresa}</span>, seu braço direito nas vendas
           </p>
         </div>
         {isDemo && (
-          <Badge className="ml-auto bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800 text-[11px]">
+          <Badge className="ml-auto bg-primary/10 text-primary border-primary/20 hover:bg-primary/15 text-[11px] font-semibold">
             Modo Demo Ativo
           </Badge>
         )}
@@ -104,7 +125,7 @@ export default function Dashboard() {
 
       <RevenueCard totalRecuperado={totalRecuperado} isDemo={isDemo} />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         <MetricCard
           icon={Users}
           title="Total de Leads Atendidos"
@@ -128,13 +149,53 @@ export default function Dashboard() {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
         <div className="lg:col-span-3">
           <MessageChart />
         </div>
         <div className="lg:col-span-2">
           <HotLeads isDemo={isDemo} />
         </div>
+      </div>
+
+      {/* Como Funciona Section */}
+      <div className="section-glow">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="relative z-10"
+        >
+          <div className="text-center mb-8">
+            <h2 className="text-xl font-bold tracking-tight">Como Funciona</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Três passos simples para automatizar seu atendimento
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {howItWorksSteps.map((item, i) => (
+              <motion.div
+                key={item.step}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.4 + i * 0.15 }}
+                className="glass-card rounded-2xl p-6 gradient-border group hover:glow-border transition-all duration-300"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-sm group-hover:bg-primary/20 transition-colors">
+                    {item.step}
+                  </div>
+                  <div className="h-9 w-9 rounded-lg bg-primary/5 flex items-center justify-center">
+                    <item.icon className="h-4.5 w-4.5 text-primary" />
+                  </div>
+                </div>
+                <h3 className="font-semibold text-sm mb-1.5">{item.title}</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">{item.description}</p>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
       </div>
     </div>
   );

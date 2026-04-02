@@ -16,9 +16,9 @@ const demoLeads = [
 type LeadStatus = "Novo" | "Em Atendimento" | "Convertido";
 
 const statusStyles: Record<LeadStatus, string> = {
-  "Novo": "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
-  "Em Atendimento": "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
-  "Convertido": "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+  "Novo": "bg-cold/15 text-cold border border-cold/20",
+  "Em Atendimento": "bg-warning/15 text-warning border border-warning/20",
+  "Convertido": "bg-primary/15 text-primary border border-primary/25",
 };
 
 export function HotLeads({ isDemo = false }: HotLeadsProps) {
@@ -29,7 +29,7 @@ export function HotLeads({ isDemo = false }: HotLeadsProps) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.3 }}
-      className="glass-card rounded-2xl p-6"
+      className="glass-card rounded-2xl p-6 gradient-border"
     >
       <div className="flex items-center gap-2 mb-5">
         <Flame className="h-5 w-5 text-hot" />
@@ -42,9 +42,9 @@ export function HotLeads({ isDemo = false }: HotLeadsProps) {
           {leads.map((lead, i) => (
             <div
               key={i}
-              className="flex items-center gap-3 p-3 rounded-xl bg-accent/50 hover:bg-accent transition-colors cursor-pointer"
+              className="flex items-center gap-3 p-3 rounded-xl bg-accent/30 hover:bg-accent/50 border border-border/30 transition-all cursor-pointer"
             >
-              <div className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center text-sm font-semibold text-primary shrink-0">
+              <div className="h-9 w-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-sm font-semibold text-primary shrink-0">
                 {lead.name.split(" ").map(n => n[0]).join("")}
               </div>
               <div className="flex-1 min-w-0">
@@ -57,7 +57,7 @@ export function HotLeads({ isDemo = false }: HotLeadsProps) {
                 </div>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
-                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 border-0 ${statusStyles[lead.status]}`}>
+                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 rounded-full ${statusStyles[lead.status]}`}>
                   {lead.status}
                 </Badge>
                 <div className="thermometer-hot text-[11px] font-semibold px-2 py-0.5 rounded-full">

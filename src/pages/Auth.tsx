@@ -39,7 +39,6 @@ export default function Auth() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -47,25 +46,19 @@ export default function Auth() {
         toast({ title: "✅ Login realizado!", description: "Bem-vindo de volta ao Atende AI." });
       } else {
         const { error } = await supabase.auth.signUp({
-          email,
-          password,
+          email, password,
           options: {
             data: { display_name: displayName },
             emailRedirectTo: window.location.origin,
           },
         });
         if (error) throw error;
-        toast({
-          title: "✅ Cadastro realizado!",
-          description: "Verifique seu e-mail para confirmar a conta.",
-        });
+        toast({ title: "✅ Cadastro realizado!", description: "Verifique seu e-mail para confirmar a conta." });
       }
     } catch (error: any) {
       toast({
         title: "Erro",
-        description: error.message === "Invalid login credentials"
-          ? "E-mail ou senha incorretos."
-          : error.message,
+        description: error.message === "Invalid login credentials" ? "E-mail ou senha incorretos." : error.message,
         variant: "destructive",
       });
     } finally {
@@ -74,15 +67,11 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
-      >
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 section-glow">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md relative z-10">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-primary/10 mb-4">
+          <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-primary/10 border border-primary/20 mb-4">
             <div className="relative">
               <MessageSquare className="h-8 w-8 text-primary" />
               <Zap className="h-4 w-4 text-primary absolute -top-1 -right-1" />
@@ -95,7 +84,7 @@ export default function Auth() {
         </div>
 
         {/* Form */}
-        <div className="glass-card rounded-2xl p-6 space-y-5">
+        <div className="glass-card rounded-2xl p-6 space-y-5 gradient-border">
           <div className="text-center">
             <h2 className="text-lg font-semibold">
               {forgotMode ? "Recuperar senha" : isLogin ? "Entrar na sua conta" : "Criar conta gratuita"}
@@ -108,25 +97,14 @@ export default function Auth() {
                 <label className="text-sm font-medium mb-1.5 block">E-mail</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="seu@email.com"
-                    className="pl-10 rounded-xl"
-                    required
-                  />
+                  <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" className="pl-10 rounded-xl bg-background/50 border-border/50" required />
                 </div>
               </div>
-              <Button type="submit" className="w-full rounded-xl" disabled={loading}>
+              <Button type="submit" className="w-full rounded-xl neon-cta" disabled={loading}>
                 {loading ? "Enviando..." : "Enviar Link de Recuperação"}
               </Button>
               <div className="text-center">
-                <button
-                  type="button"
-                  onClick={() => setForgotMode(false)}
-                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                >
+                <button type="button" onClick={() => setForgotMode(false)} className="text-sm text-muted-foreground hover:text-primary transition-colors">
                   Voltar ao login
                 </button>
               </div>
@@ -139,67 +117,34 @@ export default function Auth() {
                     <label className="text-sm font-medium mb-1.5 block">Nome</label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        value={displayName}
-                        onChange={(e) => setDisplayName(e.target.value)}
-                        placeholder="Seu nome completo"
-                        className="pl-10 rounded-xl"
-                        required={!isLogin}
-                      />
+                      <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Seu nome completo" className="pl-10 rounded-xl bg-background/50 border-border/50" required={!isLogin} />
                     </div>
                   </div>
                 )}
-
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">E-mail</label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="seu@email.com"
-                      className="pl-10 rounded-xl"
-                      required
-                    />
+                    <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" className="pl-10 rounded-xl bg-background/50 border-border/50" required />
                   </div>
                 </div>
-
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">Senha</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Mínimo 6 caracteres"
-                      className="pl-10 pr-10 rounded-xl"
-                      required
-                      minLength={6}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
+                    <Input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 6 caracteres" className="pl-10 pr-10 rounded-xl bg-background/50 border-border/50" required minLength={6} />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
-
-                <Button type="submit" className="w-full rounded-xl" disabled={loading}>
+                <Button type="submit" className="w-full rounded-xl neon-cta" disabled={loading}>
                   {loading ? "Processando..." : isLogin ? "Entrar" : "Criar Conta"}
                 </Button>
               </form>
-
               {isLogin && (
                 <div className="text-center">
-                  <button
-                    type="button"
-                    onClick={() => setForgotMode(true)}
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
+                  <button type="button" onClick={() => setForgotMode(true)} className="text-sm text-muted-foreground hover:text-primary transition-colors">
                     Esqueci minha senha
                   </button>
                 </div>
@@ -208,10 +153,7 @@ export default function Auth() {
           )}
 
           <div className="text-center">
-            <button
-              onClick={() => { setIsLogin(!isLogin); setForgotMode(false); }}
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
-            >
+            <button onClick={() => { setIsLogin(!isLogin); setForgotMode(false); }} className="text-sm text-muted-foreground hover:text-primary transition-colors">
               {isLogin ? "Não tem conta? Cadastre-se" : "Já tem conta? Faça login"}
             </button>
           </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { DollarSign } from "lucide-react";
+import { DollarSign, TrendingUp } from "lucide-react";
 
 interface RevenueCardProps {
   totalRecuperado?: number;
@@ -35,26 +35,32 @@ export function RevenueCard({ totalRecuperado = 0, isDemo = false }: RevenueCard
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="relative overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/15 via-primary/5 to-card p-6 glow-border"
+      className="relative overflow-hidden rounded-2xl p-6 gradient-border glow-border"
+      style={{
+        background: 'linear-gradient(135deg, hsl(152 76% 44% / 0.12), hsl(222 47% 7% / 0.8), hsl(217 91% 60% / 0.06))',
+      }}
     >
-      <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-primary/10 blur-3xl animate-pulse-glow" />
-      <div className="absolute bottom-0 left-0 h-24 w-24 rounded-full bg-primary/5 blur-2xl" />
+      <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full blur-3xl animate-pulse-glow" style={{ background: 'hsl(152 76% 44% / 0.08)' }} />
+      <div className="absolute bottom-0 left-0 h-32 w-32 rounded-full blur-3xl" style={{ background: 'hsl(217 91% 60% / 0.04)' }} />
 
       <div className="relative z-10">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="h-12 w-12 rounded-2xl bg-primary/15 flex items-center justify-center">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="h-12 w-12 rounded-2xl bg-primary/15 border border-primary/25 flex items-center justify-center">
             <DollarSign className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Dinheiro Recuperado</p>
+            <p className="text-sm font-medium text-foreground">Dinheiro Recuperado</p>
             <p className="text-[11px] text-muted-foreground">Estimado com base nos leads quentes</p>
           </div>
+          <div className="ml-auto flex items-center gap-1.5 text-primary">
+            <TrendingUp className="h-4 w-4" />
+          </div>
         </div>
-        <p className="text-4xl font-bold tracking-tight gradient-text">
+        <p className="text-4xl font-extrabold tracking-tight gradient-text">
           R$ {count.toLocaleString("pt-BR")}
         </p>
         {isDemo && (
-          <p className="text-xs text-muted-foreground mt-2">
+          <p className="text-xs text-muted-foreground mt-2.5">
             Baseado em 42 leads quentes × ticket médio de R$4.398
           </p>
         )}
