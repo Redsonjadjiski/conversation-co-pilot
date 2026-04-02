@@ -1,10 +1,23 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageSquare, X, Bot, User } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+
+const ADMIN_EMAIL = "jadjiski.ia@gmail.com";
 
 interface Lead {
+  id: string;
+  nome: string | null;
+  telefone: string | null;
+  status: string | null;
+  valor_recuperado: number | null;
+  data_contato: string | null;
+}
+
+interface DemoLead {
   id: number;
   name: string;
   phone: string;
@@ -15,7 +28,7 @@ interface Lead {
   conversation: { role: "user" | "assistant"; text: string }[];
 }
 
-const leads: Lead[] = [
+const demoLeads: DemoLead[] = [
   { id: 1, name: "Carlos Silva", phone: "+55 11 9****-1234", status: "ai", score: 9, lastMessage: "Quero saber o preço do plano Pro", time: "2min",
     conversation: [
       { role: "user", text: "Oi, boa tarde!" },
@@ -57,7 +70,29 @@ function getThermometer(score: number) {
 }
 
 export default function LeadTracker() {
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const { user } = useAuth();
+  const isDemo = user?.email === ADMIN_EMAIL;
+  const [selectedDemoLead, setSelectedDemoLead] = useState<DemoLead | null>(null);
+  const [realLeads, setRealLeads] = useState<Lead[]>([]);
+
+  useEffect(() => {
+    if (!user || isDemo) return;
+    async function fetchLeads() {
+      const { data } = await supabase
+        .from("leads")
+        .select("*")
+        .eq("user_id", user!.id)
+        .order("data_contato", { ascending: false });
+      if (data) setRealLeads(data);
+    }
+    fetchLeads();
+  }, [user, isDemo]);
+
+  const statusMap: Record<string, string> = {
+    novo: "Novo",
+    em_atendimento: "Em Atendimento",
+    convertido: "Convertido",
+  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -85,55 +120,91 @@ export default function LeadTracker() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {leads.map((lead) => {
-              const therm = getThermometer(lead.score);
-              return (
-                <TableRow
-                  key={lead.id}
-                  className="border-border/30 cursor-pointer hover:bg-accent/50 transition-colors"
-                  onClick={() => setSelectedLead(lead)}
-                >
+            {isDemo ? (
+              demoLeads.map((lead) => {
+                const therm = getThermometer(lead.score);
+                return (
+                  <TableRow
+                    key={lead.id}
+                    className="border-border/30 cursor-pointer hover:bg-accent/50 transition-colors"
+                    onClick={() => setSelectedDemoLead(lead)}
+                  >
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center text-sm font-semibold text-primary shrink-0">
+                          {lead.name.split(" ").map(n => n[0]).join("")}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{lead.name}</p>
+                          <p className="text-[11px] text-muted-foreground">{lead.phone}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={lead.status === "ai" ? "default" : "secondary"} className="rounded-full text-[11px]">
+                        {lead.status === "ai" ? "IA Atendendo" : "Aguardando Humano"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`${therm.className} text-[11px] font-semibold px-2.5 py-1 rounded-full`}>
+                        {lead.score}/10 {therm.label}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate hidden md:table-cell">
+                      {lead.lastMessage}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground text-right">{lead.time}</TableCell>
+                  </TableRow>
+                );
+              })
+            ) : realLeads.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  Nenhum lead encontrado
+                </TableCell>
+              </TableRow>
+            ) : (
+              realLeads.map((lead) => (
+                <TableRow key={lead.id} className="border-border/30">
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center text-sm font-semibold text-primary shrink-0">
-                        {lead.name.split(" ").map(n => n[0]).join("")}
+                        {(lead.nome ?? "?").split(" ").map(n => n[0]).join("").slice(0, 2)}
                       </div>
                       <div>
-                        <p className="text-sm font-medium">{lead.name}</p>
-                        <p className="text-[11px] text-muted-foreground">{lead.phone}</p>
+                        <p className="text-sm font-medium">{lead.nome ?? "Sem nome"}</p>
+                        <p className="text-[11px] text-muted-foreground">{lead.telefone ?? "-"}</p>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={lead.status === "ai" ? "default" : "secondary"} className="rounded-full text-[11px]">
-                      {lead.status === "ai" ? "IA Atendendo" : "Aguardando Humano"}
+                    <Badge variant="outline" className="rounded-full text-[11px]">
+                      {statusMap[lead.status ?? "novo"] ?? lead.status}
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    <span className={`${therm.className} text-[11px] font-semibold px-2.5 py-1 rounded-full`}>
-                      {lead.score}/10 {therm.label}
-                    </span>
+                  <TableCell className="text-sm">
+                    R$ {(lead.valor_recuperado ?? 0).toLocaleString("pt-BR")}
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate hidden md:table-cell">
-                    {lead.lastMessage}
+                  <TableCell className="text-sm text-muted-foreground hidden md:table-cell">-</TableCell>
+                  <TableCell className="text-sm text-muted-foreground text-right">
+                    {lead.data_contato ? new Date(lead.data_contato).toLocaleDateString("pt-BR") : "-"}
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground text-right">{lead.time}</TableCell>
                 </TableRow>
-              );
-            })}
+              ))
+            )}
           </TableBody>
         </Table>
       </motion.div>
 
-      {/* Conversation modal */}
+      {/* Demo conversation modal */}
       <AnimatePresence>
-        {selectedLead && (
+        {selectedDemoLead && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4"
-            onClick={() => setSelectedLead(null)}
+            onClick={() => setSelectedDemoLead(null)}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
@@ -145,20 +216,20 @@ export default function LeadTracker() {
               <div className="flex items-center justify-between p-5 border-b border-border/50">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-primary/15 flex items-center justify-center text-sm font-semibold text-primary">
-                    {selectedLead.name.split(" ").map(n => n[0]).join("")}
+                    {selectedDemoLead.name.split(" ").map(n => n[0]).join("")}
                   </div>
                   <div>
-                    <p className="font-medium">{selectedLead.name}</p>
-                    <p className="text-xs text-muted-foreground">{selectedLead.phone}</p>
+                    <p className="font-medium">{selectedDemoLead.name}</p>
+                    <p className="text-xs text-muted-foreground">{selectedDemoLead.phone}</p>
                   </div>
                 </div>
-                <button onClick={() => setSelectedLead(null)} className="h-8 w-8 rounded-lg hover:bg-accent flex items-center justify-center transition-colors">
+                <button onClick={() => setSelectedDemoLead(null)} className="h-8 w-8 rounded-lg hover:bg-accent flex items-center justify-center transition-colors">
                   <X className="h-4 w-4 text-muted-foreground" />
                 </button>
               </div>
 
               <div className="flex-1 overflow-auto p-5 space-y-3">
-                {selectedLead.conversation.map((msg, i) => (
+                {selectedDemoLead.conversation.map((msg, i) => (
                   <div key={i} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : ""}`}>
                     {msg.role === "assistant" && (
                       <div className="h-7 w-7 rounded-full bg-primary/15 flex items-center justify-center shrink-0 mt-0.5">
