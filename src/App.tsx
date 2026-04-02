@@ -11,6 +11,7 @@ import LeadTracker from "./pages/LeadTracker";
 import Connection from "./pages/Connection";
 import Subscription from "./pages/Subscription";
 import NotFound from "./pages/NotFound";
+import ResetPassword from "./pages/ResetPassword";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
