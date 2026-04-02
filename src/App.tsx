@@ -21,20 +21,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function AuthRoute() {
-  const { user, loading } = useAuth();
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Carregando...</div>;
-  if (user) return <Navigate to="/dashboard" replace />;
-  return <Auth />;
-}
-
-function PublicRoute() {
-  const { user, loading } = useAuth();
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Carregando...</div>;
-  if (user) return <Navigate to="/dashboard" replace />;
-  return <LandingPage />;
-}
-
 const App = () => (
   <AuthProvider>
     <TooltipProvider>
@@ -42,26 +28,15 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<PublicRoute />} />
-          <Route path="/auth" element={<AuthRoute />} />
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/auth" element={<Auth />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route
-            path="/*"
-            element={
-              <ProtectedRoute>
-                <AppLayout>
-                  <Routes>
-                    <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/brain" element={<AIBrain />} />
-                    <Route path="/leads" element={<LeadTracker />} />
-                    <Route path="/connection" element={<Connection />} />
-                    <Route path="/subscription" element={<Subscription />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </AppLayout>
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/dashboard" element={<ProtectedRoute><AppLayout><Dashboard /></AppLayout></ProtectedRoute>} />
+          <Route path="/brain" element={<ProtectedRoute><AppLayout><AIBrain /></AppLayout></ProtectedRoute>} />
+          <Route path="/leads" element={<ProtectedRoute><AppLayout><LeadTracker /></AppLayout></ProtectedRoute>} />
+          <Route path="/connection" element={<ProtectedRoute><AppLayout><Connection /></AppLayout></ProtectedRoute>} />
+          <Route path="/subscription" element={<ProtectedRoute><AppLayout><Subscription /></AppLayout></ProtectedRoute>} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
