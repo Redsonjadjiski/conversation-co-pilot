@@ -291,8 +291,9 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
               {completed.step3 && <div className="ml-auto h-7 w-7 rounded-full bg-success/20 flex items-center justify-center"><Check className="h-4 w-4 text-success" /></div>}
             </div>
             <div>
-              <label className="text-sm font-medium mb-1.5 block text-foreground">URL do Webhook</label>
-              <Input value={fields.webhookUrl} onChange={(e) => setFields((f) => ({ ...f, webhookUrl: e.target.value }))} placeholder="https://sua-api.evolution.com/webhook" className="rounded-xl bg-background border-border text-foreground placeholder:text-muted-foreground" />
+              <label className="text-sm font-medium mb-1.5 block text-foreground">URL do Servidor Evolution API</label>
+              <Input value={fields.webhookUrl} onChange={(e) => setFields((f) => ({ ...f, webhookUrl: e.target.value }))} placeholder="https://seu-app.up.railway.app" className="rounded-xl bg-background border-border text-foreground placeholder:text-muted-foreground" />
+              <p className="text-xs text-muted-foreground mt-1.5">Cole a URL do seu servidor Evolution API hospedado no Railway</p>
               {fields.webhookUrl.length > 0 && !isStep3Valid && <p className="text-xs text-destructive mt-1.5 flex items-center gap-1"><AlertCircle className="h-3 w-3" /> URL inválida</p>}
               {isStep3Valid && !completed.step3 && <p className="text-xs text-success mt-1.5 flex items-center gap-1"><Check className="h-3 w-3" /> URL válida</p>}
             </div>

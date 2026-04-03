@@ -89,7 +89,18 @@ export default function AIBrain() {
           { onConflict: "user_id" }
         );
 
-      if (error) throw error;
+      if (error) {
+        console.warn("Upsert falhou, tentando delete+insert:", error);
+        await supabase.from("configuracoes_ia").delete().eq("user_id", user.id);
+        const { error: insertError } = await supabase
+          .from("configuracoes_ia")
+          .insert({
+            user_id: user.id,
+            instrucoes_sistema: sanitized,
+            nome_empresa: companyName || "Atende AI",
+          });
+        if (insertError) throw insertError;
+      }
 
       toast.success("Conhecimento atualizado com sucesso! Sua IA já está mais inteligente.");
     } catch (err: any) {
