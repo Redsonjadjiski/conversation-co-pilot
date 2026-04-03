@@ -11,6 +11,10 @@ import AIBrain from "./pages/AIBrain";
 import LeadTracker from "./pages/LeadTracker";
 import Connection from "./pages/Connection";
 import Subscription from "./pages/Subscription";
+import Broadcasts from "./pages/Broadcasts";
+import CRM from "./pages/CRM";
+import FlowBuilder from "./pages/FlowBuilder";
+import ManualPage from "./pages/Manual";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 
@@ -44,6 +48,10 @@ const App = () => (
           <Route path="/leads" element={<ProtectedRoute><AppLayout><LeadTracker /></AppLayout></ProtectedRoute>} />
           <Route path="/connection" element={<ProtectedRoute><AppLayout><Connection /></AppLayout></ProtectedRoute>} />
           <Route path="/subscription" element={<ProtectedRoute><AppLayout><Subscription /></AppLayout></ProtectedRoute>} />
+          <Route path="/broadcasts" element={<ProtectedRoute><AppLayout><Broadcasts /></AppLayout></ProtectedRoute>} />
+          <Route path="/crm" element={<ProtectedRoute><AppLayout><CRM /></AppLayout></ProtectedRoute>} />
+          <Route path="/flows" element={<ProtectedRoute><AppLayout><FlowBuilder /></AppLayout></ProtectedRoute>} />
+          <Route path="/manual" element={<ProtectedRoute><AppLayout><ManualPage /></AppLayout></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

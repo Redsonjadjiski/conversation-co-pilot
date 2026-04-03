@@ -211,7 +211,7 @@ export default function LandingPage() {
                     </div>
                     <div className="flex justify-start">
                       <div className="bg-card/60 border border-border/30 rounded-2xl rounded-bl-sm px-4 py-2.5 max-w-[80%]">
-                        <p className="text-sm">Perfeito! ✨ Inclui IA 24/7, Lead Tracker, follow-up automático e suporte. Posso ativar seu teste grátis?</p>
+                        <p className="text-sm">Perfeito! ✨ Inclui IA 24/7, Lead Tracker, follow-up automático e suporte. Posso gerar seu boleto agora?</p>
                       </div>
                     </div>
                     <div className="flex justify-end">

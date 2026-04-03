@@ -1,4 +1,4 @@
-import { Brain, LayoutDashboard, MessageSquare, Plug, CreditCard, LogOut } from "lucide-react";
+import { Brain, LayoutDashboard, MessageSquare, Plug, CreditCard, LogOut, Send, Kanban, GitBranch, BookOpen } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,9 +15,13 @@ import {
 
 const navItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "CRM", url: "/crm", icon: Kanban },
+  { title: "Disparos", url: "/broadcasts", icon: Send },
+  { title: "Fluxos", url: "/flows", icon: GitBranch },
   { title: "Cérebro da IA", url: "/brain", icon: Brain },
   { title: "Lead Tracker", url: "/leads", icon: MessageSquare },
   { title: "Conexão", url: "/connection", icon: Plug },
+  { title: "Manual", url: "/manual", icon: BookOpen },
   { title: "Assinatura", url: "/subscription", icon: CreditCard },
 ];
 
