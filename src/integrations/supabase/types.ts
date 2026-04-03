@@ -114,6 +114,8 @@ export type Database = {
           token_used: number
           updated_at: string
           user_id: string
+          webhook_limit: number
+          webhook_used: number
         }
         Insert: {
           created_at?: string
@@ -130,6 +132,8 @@ export type Database = {
           token_used?: number
           updated_at?: string
           user_id: string
+          webhook_limit?: number
+          webhook_used?: number
         }
         Update: {
           created_at?: string
@@ -146,6 +150,8 @@ export type Database = {
           token_used?: number
           updated_at?: string
           user_id?: string
+          webhook_limit?: number
+          webhook_used?: number
         }
         Relationships: []
       }
