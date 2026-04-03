@@ -421,7 +421,7 @@ export default function LandingPage() {
             <motion.div variants={fadeUp} custom={2}>
               <Link to="/auth">
                 <Button size="lg" className="neon-cta rounded-xl text-base px-10 py-6">
-                  Começar Teste Grátis <ArrowRight className="ml-2 h-5 w-5" />
+                  Começar Agora <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
             </motion.div>
