@@ -135,7 +135,7 @@ export default function AIBrain() {
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
                 placeholder="Nome da empresa (ex: Atende AI)"
-                className="mb-3 rounded-xl bg-background/50 border-border/50 text-sm"
+                className="mb-3 rounded-xl bg-background border-border text-foreground text-sm placeholder:text-muted-foreground"
               />
 
               <Textarea
@@ -146,7 +146,7 @@ export default function AIBrain() {
                   }
                 }}
                 placeholder="Ex: Nosso produto custa R$97/mês no plano básico e R$297/mês no plano Pro. Oferecemos 14 dias de teste grátis..."
-                className="min-h-[200px] bg-background/50 border-border/50 rounded-xl resize-none text-sm"
+                className="min-h-[200px] bg-background border-border rounded-xl resize-none text-sm text-foreground placeholder:text-muted-foreground"
                 disabled={loading}
                 maxLength={MAX_CHARS}
               />
@@ -242,7 +242,7 @@ export default function AIBrain() {
                   onChange={(e) => setTestInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleTestSend()}
                   placeholder="Testar uma mensagem..."
-                  className="rounded-xl bg-background/50 border-border/50 text-sm"
+                  className="rounded-xl bg-background border-border text-sm text-foreground placeholder:text-muted-foreground"
                 />
                 <Button size="icon" onClick={handleTestSend} className="rounded-xl shrink-0">
                   <Send className="h-4 w-4" />
