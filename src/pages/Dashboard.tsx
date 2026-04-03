@@ -75,7 +75,7 @@ export default function Dashboard() {
     fetchData();
   }, [user]);
 
-  const showWarning = !subscription.subscribed || !hasConfig;
+  const showWarning = !isDemo && (!subscription.subscribed || !hasConfig);
 
   const displayLeads = isDemo && totalLeads === 0 ? 1247 : totalLeads;
   const displayHours = isDemo && totalLeads === 0 ? "187h" : (totalLeads > 0 ? `${Math.round(totalLeads * 0.15)}h` : "0h");

@@ -1,9 +1,18 @@
 import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Kanban, GripVertical, Phone, Mail, Plus, MoreHorizontal } from "lucide-react";
+import { Kanban, GripVertical, Phone, Plus, MoreHorizontal, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { SubscriptionLock } from "@/components/SubscriptionLock";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface Card {
   id: string;
@@ -62,6 +71,8 @@ const initialColumns: Column[] = [
 export default function CRM() {
   const [columns, setColumns] = useState<Column[]>(initialColumns);
   const [draggedCard, setDraggedCard] = useState<{ cardId: string; fromCol: string } | null>(null);
+  const [showNewLead, setShowNewLead] = useState(false);
+  const [newLead, setNewLead] = useState({ name: "", phone: "", value: "", tag: "WhatsApp" });
 
   const handleDragStart = (cardId: string, fromCol: string) => {
     setDraggedCard({ cardId, fromCol });
@@ -73,12 +84,10 @@ export default function CRM() {
         setDraggedCard(null);
         return;
       }
-
       setColumns((prev) => {
         const fromCol = prev.find((c) => c.id === draggedCard.fromCol);
         const card = fromCol?.cards.find((c) => c.id === draggedCard.cardId);
         if (!card) return prev;
-
         return prev.map((col) => {
           if (col.id === draggedCard.fromCol) {
             return { ...col, cards: col.cards.filter((c) => c.id !== draggedCard.cardId) };
@@ -94,6 +103,35 @@ export default function CRM() {
     [draggedCard]
   );
 
+  const deleteCard = (colId: string, cardId: string) => {
+    setColumns((prev) =>
+      prev.map((col) =>
+        col.id === colId ? { ...col, cards: col.cards.filter((c) => c.id !== cardId) } : col
+      )
+    );
+    toast.success("Lead removido com sucesso");
+  };
+
+  const addLead = () => {
+    if (!newLead.name.trim() || !newLead.phone.trim()) {
+      toast.error("Preencha nome e telefone");
+      return;
+    }
+    const card: Card = {
+      id: crypto.randomUUID(),
+      name: newLead.name,
+      phone: newLead.phone,
+      value: newLead.value || "R$ 0",
+      tag: newLead.tag || "WhatsApp",
+    };
+    setColumns((prev) =>
+      prev.map((col) => (col.id === "leads" ? { ...col, cards: [...col.cards, card] } : col))
+    );
+    setNewLead({ name: "", phone: "", value: "", tag: "WhatsApp" });
+    setShowNewLead(false);
+    toast.success("Lead cadastrado com sucesso!");
+  };
+
   return (
     <SubscriptionLock featureName="CRM Kanban">
       <div className="max-w-full mx-auto space-y-6">
@@ -107,10 +145,29 @@ export default function CRM() {
               Gerencie seus leads e clientes no funil de vendas
             </p>
           </div>
-          <Button className="neon-cta rounded-xl">
+          <Button className="neon-cta rounded-xl" onClick={() => setShowNewLead(true)}>
             <Plus className="h-4 w-4 mr-2" /> Novo Lead
           </Button>
         </div>
+
+        {/* New Lead Modal */}
+        <Dialog open={showNewLead} onOpenChange={setShowNewLead}>
+          <DialogContent className="rounded-2xl">
+            <DialogHeader>
+              <DialogTitle>Cadastrar Novo Lead</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <Input placeholder="Nome completo" value={newLead.name} onChange={(e) => setNewLead({ ...newLead, name: e.target.value })} className="rounded-xl" />
+              <Input placeholder="Telefone" value={newLead.phone} onChange={(e) => setNewLead({ ...newLead, phone: e.target.value })} className="rounded-xl" />
+              <Input placeholder="Valor (ex: R$ 497)" value={newLead.value} onChange={(e) => setNewLead({ ...newLead, value: e.target.value })} className="rounded-xl" />
+              <Input placeholder="Tag (ex: WhatsApp, Site)" value={newLead.tag} onChange={(e) => setNewLead({ ...newLead, tag: e.target.value })} className="rounded-xl" />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" className="rounded-xl" onClick={() => setShowNewLead(false)}>Cancelar</Button>
+              <Button className="neon-cta rounded-xl" onClick={addLead}>Cadastrar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <div className="flex gap-4 overflow-x-auto pb-4">
           {columns.map((col, colIdx) => (
@@ -126,14 +183,9 @@ export default function CRM() {
               <div className="glass-card rounded-2xl p-4">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <div
-                      className="h-3 w-3 rounded-full"
-                      style={{ backgroundColor: col.color }}
-                    />
+                    <div className="h-3 w-3 rounded-full" style={{ backgroundColor: col.color }} />
                     <h3 className="font-semibold text-sm">{col.title}</h3>
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                      {col.cards.length}
-                    </Badge>
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">{col.cards.length}</Badge>
                   </div>
                   <Button size="icon" variant="ghost" className="h-7 w-7">
                     <MoreHorizontal className="h-4 w-4" />
@@ -157,9 +209,16 @@ export default function CRM() {
                           </p>
                           <div className="flex items-center justify-between mt-2">
                             <span className="text-xs font-semibold text-primary">{card.value}</span>
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                              {card.tag}
-                            </Badge>
+                            <div className="flex items-center gap-1">
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">{card.tag}</Badge>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); deleteCard(col.id, card.id); }}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10"
+                                title="Apagar lead"
+                              >
+                                <Trash2 className="h-3 w-3 text-destructive" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -171,6 +230,7 @@ export default function CRM() {
                   variant="ghost"
                   size="sm"
                   className="w-full mt-3 text-xs text-muted-foreground hover:text-foreground rounded-xl"
+                  onClick={() => setShowNewLead(true)}
                 >
                   <Plus className="h-3 w-3 mr-1" /> Adicionar
                 </Button>
