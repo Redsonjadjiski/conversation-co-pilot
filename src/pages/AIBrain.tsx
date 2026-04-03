@@ -146,7 +146,7 @@ export default function AIBrain() {
                   }
                 }}
                 placeholder="Ex: Nosso produto custa R$97/mês no plano básico e R$297/mês no plano Pro. Oferecemos 14 dias de teste grátis..."
-                className="min-h-[200px] bg-background/50 border-border/50 rounded-xl resize-none text-sm"
+                className="min-h-[200px] bg-background border-border rounded-xl resize-none text-sm text-foreground placeholder:text-muted-foreground"
                 disabled={loading}
                 maxLength={MAX_CHARS}
               />
