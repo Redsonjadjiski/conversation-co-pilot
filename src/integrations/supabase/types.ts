@@ -103,11 +103,15 @@ export type Database = {
           created_at: string
           current_period_end: string | null
           current_period_start: string | null
+          cycle_reset_at: string | null
           id: string
           plan: string | null
           status: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
+          token_extras: number
+          token_limit: number
+          token_used: number
           updated_at: string
           user_id: string
         }
@@ -115,11 +119,15 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string | null
+          cycle_reset_at?: string | null
           id?: string
           plan?: string | null
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          token_extras?: number
+          token_limit?: number
+          token_used?: number
           updated_at?: string
           user_id: string
         }
@@ -127,11 +135,15 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string | null
+          cycle_reset_at?: string | null
           id?: string
           plan?: string | null
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          token_extras?: number
+          token_limit?: number
+          token_used?: number
           updated_at?: string
           user_id?: string
         }
