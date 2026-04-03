@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { CreditCard, Check, Crown, Zap, Coins, Star, X } from "lucide-react";
+import { CreditCard, Check, Crown, Zap, Coins, Star, Shield, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,12 +16,14 @@ const PLANS = [
     period: "/mês",
     tokens: "5 Milhões de Tokens",
     connections: "1 Número conectado",
+    webhooks: "10.000 Webhooks/mês",
     priceId: "price_1THzcMBdS2ci3z0zWRH8yQsN",
     popular: false,
     icon: Zap,
     features: [
       "5M Tokens de IA inclusos",
       "1 Número WhatsApp",
+      "Limite de 10.000 Webhooks/mês",
       "Agente de IA personalizado",
       "Lead Tracker",
       "Dashboard completo",
@@ -35,29 +37,30 @@ const PLANS = [
     period: "/mês",
     tokens: "10 Milhões de Tokens",
     connections: "1+ Números conectados",
+    webhooks: "20.000 Webhooks/mês",
     priceId: "price_1THzcfBdS2ci3z0z1beCQNT4",
     popular: true,
     icon: Crown,
     features: [
       "10M Tokens de IA inclusos",
       "Múltiplos Números WhatsApp",
+      "Limite de 20.000 Webhooks/mês",
       "Agente de IA personalizado",
       "Lead Tracker avançado",
       "CRM Kanban completo",
       "Flow Builder",
-      "Disparos em massa",
       "Suporte prioritário",
     ],
   },
 ];
 
 const TOKEN_PACKAGES = [
-  { tokens: "1M", amount: 1_000_000, price: "R$ 16,99", priceId: "price_1THzcxBdS2ci3z0z7I1YNUbU", tag: null },
-  { tokens: "2M", amount: 2_000_000, price: "R$ 22,99", priceId: "price_1THzdMBdS2ci3z0z3rDhCo4G", tag: null },
-  { tokens: "3M", amount: 3_000_000, price: "R$ 29,99", priceId: "price_1THzddBdS2ci3z0z91x5yXym", tag: null },
-  { tokens: "4M", amount: 4_000_000, price: "R$ 39,99", priceId: "price_1THze0BdS2ci3z0zLjfb6rKU", tag: null },
-  { tokens: "5M", amount: 5_000_000, price: "R$ 49,99", priceId: "price_1THzeFBdS2ci3z0zFzNQXhfb", tag: "Melhor Custo-Benefício" },
-  { tokens: "10M", amount: 10_000_000, price: "R$ 89,90", priceId: "price_1THzegBdS2ci3z0zWzohE69E", tag: "Super Econômico" },
+  { tokens: "1M", amount: 1_000_000, price: "R$ 16,99", priceId: "price_1THzcxBdS2ci3z0z7I1YNUbU", tag: null, extraWebhooks: 3000 },
+  { tokens: "2M", amount: 2_000_000, price: "R$ 22,99", priceId: "price_1THzdMBdS2ci3z0z3rDhCo4G", tag: null, extraWebhooks: 6000 },
+  { tokens: "3M", amount: 3_000_000, price: "R$ 29,99", priceId: "price_1THzddBdS2ci3z0z91x5yXym", tag: null, extraWebhooks: 9000 },
+  { tokens: "4M", amount: 4_000_000, price: "R$ 39,99", priceId: "price_1THze0BdS2ci3z0zLjfb6rKU", tag: null, extraWebhooks: 12000 },
+  { tokens: "5M", amount: 5_000_000, price: "R$ 49,99", priceId: "price_1THzeFBdS2ci3z0zFzNQXhfb", tag: "Melhor Custo-Benefício", extraWebhooks: 15000 },
+  { tokens: "10M", amount: 10_000_000, price: "R$ 89,90", priceId: "price_1THzegBdS2ci3z0zWzohE69E", tag: "Super Econômico", extraWebhooks: 30000 },
 ];
 
 export default function Subscription() {
@@ -127,6 +130,12 @@ export default function Subscription() {
         </motion.div>
       )}
 
+      {/* Anti-spam notice */}
+      <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+        <Shield className="h-4 w-4 text-primary" />
+        <span>Limites de Webhooks aplicados para garantir atendimento de qualidade e evitar spam.</span>
+      </div>
+
       {/* Plans Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {PLANS.map((plan, i) => (
@@ -151,7 +160,11 @@ export default function Subscription() {
 
             <h3 className="font-semibold text-lg">{plan.name}</h3>
             <p className="text-sm text-muted-foreground mb-1">{plan.connections}</p>
-            <p className="text-sm text-muted-foreground mb-3">{plan.tokens}</p>
+            <p className="text-sm text-muted-foreground mb-1">{plan.tokens}</p>
+            <p className="text-sm text-muted-foreground mb-3 flex items-center gap-1">
+              <Shield className="h-3.5 w-3.5 text-primary" />
+              {plan.webhooks}
+            </p>
 
             <div className="mb-4">
               <span className="text-3xl font-bold">{plan.price}</span>
@@ -210,6 +223,7 @@ export default function Subscription() {
             </DialogTitle>
             <DialogDescription>
               Compre tokens extras para o ciclo atual. Válidos até o próximo reset mensal.
+              Cada pacote também adiciona Webhooks proporcionais (+3.000 por 1M de tokens).
             </DialogDescription>
           </DialogHeader>
 
@@ -233,6 +247,9 @@ export default function Subscription() {
                 )}
                 <p className="font-bold text-lg">{pkg.tokens} Tokens</p>
                 <p className="text-primary font-semibold text-sm">{pkg.price}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  +{pkg.extraWebhooks.toLocaleString("pt-BR")} webhooks
+                </p>
                 {loading === pkg.priceId && (
                   <p className="text-xs text-muted-foreground mt-1">Redirecionando...</p>
                 )}

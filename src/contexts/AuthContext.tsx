@@ -6,6 +6,13 @@ interface SubscriptionInfo {
   subscribed: boolean;
   product_id?: string | null;
   subscription_end?: string | null;
+  token_used?: number;
+  token_limit?: number;
+  token_extras?: number;
+  webhook_used?: number;
+  webhook_limit?: number;
+  locked?: boolean;
+  lock_reason?: string | null;
 }
 
 const ADMIN_EMAIL = "jadjiski.ia@gmail.com";
@@ -36,10 +43,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { data, error } = await supabase.functions.invoke("check-subscription");
       if (!error && data) {
+        const tokenTotal = (data.token_limit ?? 0) + (data.token_extras ?? 0);
+        const tokensExhausted = tokenTotal > 0 && (data.token_used ?? 0) >= tokenTotal;
+        const webhooksExhausted = (data.webhook_limit ?? 0) > 0 && (data.webhook_used ?? 0) >= (data.webhook_limit ?? 0);
+        const locked = tokensExhausted || webhooksExhausted;
+        let lock_reason: string | null = null;
+        if (tokensExhausted) lock_reason = "tokens";
+        else if (webhooksExhausted) lock_reason = "webhooks";
+
         setSubscription({
           subscribed: data.subscribed ?? false,
           product_id: data.product_id,
           subscription_end: data.subscription_end,
+          token_used: data.token_used,
+          token_limit: data.token_limit,
+          token_extras: data.token_extras,
+          webhook_used: data.webhook_used,
+          webhook_limit: data.webhook_limit,
+          locked,
+          lock_reason,
         });
       }
     } catch (e) {
@@ -83,7 +105,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [checkSubscription]);
 
-  // Auto-refresh subscription every 60s
   useEffect(() => {
     if (!user) return;
     const interval = setInterval(checkSubscription, 60000);
