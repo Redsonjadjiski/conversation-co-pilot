@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       configuracoes_ia: {
         Row: {
+          evolution_api_key: string | null
           id: number
           instrucoes_sistema: string | null
           nome_empresa: string | null
@@ -24,6 +25,7 @@ export type Database = {
           webhook_make: string | null
         }
         Insert: {
+          evolution_api_key?: string | null
           id?: number
           instrucoes_sistema?: string | null
           nome_empresa?: string | null
@@ -32,6 +34,7 @@ export type Database = {
           webhook_make?: string | null
         }
         Update: {
+          evolution_api_key?: string | null
           id?: number
           instrucoes_sistema?: string | null
           nome_empresa?: string | null

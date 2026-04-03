@@ -1,0 +1,1 @@
+ALTER TABLE public.configuracoes_ia ADD COLUMN IF NOT EXISTS evolution_api_key text;
