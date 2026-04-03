@@ -1,0 +1,1 @@
+ALTER TABLE public.configuracoes_ia ADD CONSTRAINT configuracoes_ia_user_id_unique UNIQUE (user_id);

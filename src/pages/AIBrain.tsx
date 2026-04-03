@@ -242,7 +242,7 @@ export default function AIBrain() {
                   onChange={(e) => setTestInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleTestSend()}
                   placeholder="Testar uma mensagem..."
-                  className="rounded-xl bg-background/50 border-border/50 text-sm"
+                  className="rounded-xl bg-background border-border text-sm text-foreground placeholder:text-muted-foreground"
                 />
                 <Button size="icon" onClick={handleTestSend} className="rounded-xl shrink-0">
                   <Send className="h-4 w-4" />
