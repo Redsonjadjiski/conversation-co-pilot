@@ -53,6 +53,16 @@ export default function AIBrain() {
     load();
   }, [user]);
 
+  const MAX_CHARS = 60000;
+
+  const sanitizeText = (text: string): string => {
+    return text
+      .replace(/[ \t]+/g, ' ')
+      .replace(/(\r?\n){3,}/g, '\n\n')
+      .replace(/^ +| +$/gm, '')
+      .trim();
+  };
+
   const handleSave = async () => {
     if (!user) {
       toast.error("Você precisa estar logado para salvar.");
@@ -63,9 +73,11 @@ export default function AIBrain() {
       return;
     }
 
+    const sanitized = sanitizeText(knowledge);
+    setKnowledge(sanitized);
+
     setSaving(true);
     try {
-      // Check if config already exists for this user
       const { data: existing } = await supabase
         .from("configuracoes_ia")
         .select("id")
@@ -74,28 +86,26 @@ export default function AIBrain() {
 
       let error;
       if (existing) {
-        // Update
         ({ error } = await supabase
           .from("configuracoes_ia")
           .update({
-            instrucoes_sistema: knowledge,
+            instrucoes_sistema: sanitized,
             nome_empresa: companyName || "Atende AI",
           })
           .eq("user_id", user.id));
       } else {
-        // Insert
         ({ error } = await supabase
           .from("configuracoes_ia")
           .insert({
             user_id: user.id,
-            instrucoes_sistema: knowledge,
+            instrucoes_sistema: sanitized,
             nome_empresa: companyName || "Atende AI",
           }));
       }
 
       if (error) throw error;
 
-      toast.success("Conhecimento salvo com sucesso! A IA já está usando as novas informações.");
+      toast.success("Conhecimento atualizado com sucesso! Sua IA já está mais inteligente.");
     } catch (err: any) {
       console.error("Erro ao salvar:", err);
       toast.error("Erro ao salvar: " + (err.message || "Tente novamente."));
