@@ -13,6 +13,7 @@ interface StepStatus {
   geminiKey: string;
   training: string;
   webhookUrl: string;
+  evolutionApiKey: string;
 }
 
 export type LogEntry = {
@@ -75,6 +76,7 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
     geminiKey: "",
     training: "",
     webhookUrl: "",
+    evolutionApiKey: "",
   });
 
   const [completed, setCompleted] = useState({ step1: false, step2: false, step3: false });
@@ -102,6 +104,9 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
         if (data.webhook_make) {
           setFields(f => ({ ...f, webhookUrl: data.webhook_make! }));
           setCompleted(c => ({ ...c, step3: true }));
+        }
+        if ((data as any).evolution_api_key) {
+          setFields(f => ({ ...f, evolutionApiKey: (data as any).evolution_api_key }));
         }
       }
     }
@@ -164,9 +169,9 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
       setCurrentStep(3);
       onLog({ type: "success", message: "Treinamento salvo!" });
     } else if (step === 3 && isStep3Valid) {
-      await upsertConfig({ webhook_make: fields.webhookUrl });
+      await upsertConfig({ webhook_make: fields.webhookUrl, evolution_api_key: fields.evolutionApiKey });
       setCompleted((prev) => ({ ...prev, step3: true }));
-      onLog({ type: "success", message: "Webhook salvo e ativo!" });
+      onLog({ type: "success", message: "Configuração da Evolution API salva!" });
     }
   };
 
@@ -298,6 +303,11 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
               {fields.webhookUrl.length > 0 && !isStep3Valid && <p className="text-xs text-destructive mt-1.5 flex items-center gap-1"><AlertCircle className="h-3 w-3" /> URL inválida</p>}
               {isStep3Valid && !completed.step3 && <p className="text-xs text-success mt-1.5 flex items-center gap-1"><Check className="h-3 w-3" /> URL válida</p>}
             </div>
+            <div>
+              <label className="text-sm font-medium mb-1.5 block text-foreground">API Key da Evolution</label>
+              <Input type="password" value={fields.evolutionApiKey} onChange={(e) => setFields((f) => ({ ...f, evolutionApiKey: e.target.value }))} placeholder="Sua API Key global do servidor" className="rounded-xl bg-background border-border text-foreground placeholder:text-muted-foreground" />
+              <p className="text-xs text-muted-foreground mt-1.5">A senha de autenticação do seu servidor Evolution API</p>
+            </div>
             <Button onClick={() => handleValidateStep(3)} disabled={!isStep3Valid || validating || completed.step3} className="rounded-xl w-full">
               {validating ? <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Testando...</span>
                 : completed.step3 ? <span className="flex items-center gap-2"><Check className="h-4 w-4" /> Concluído</span>
@@ -369,7 +379,7 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
 
       {/* WhatsApp Connection via Evolution API */}
       {allCompleted && (
-        <WhatsAppConnect serverUrl={fields.webhookUrl} onLog={onLog} />
+        <WhatsAppConnect serverUrl={fields.webhookUrl} evolutionApiKey={fields.evolutionApiKey} onLog={onLog} />
       )}
     </div>
   );

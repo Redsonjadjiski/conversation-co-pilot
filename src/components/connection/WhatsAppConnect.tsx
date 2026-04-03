@@ -1,20 +1,20 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Smartphone, QrCode, Check, X, Loader2, Wifi, WifiOff, RefreshCw } from "lucide-react";
+import { Smartphone, QrCode, Check, Loader2, Wifi, WifiOff, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 
 interface WhatsAppConnectProps {
   serverUrl: string;
+  evolutionApiKey: string;
   onLog: (entry: { type: "info" | "success" | "error" | "warning"; message: string }) => void;
 }
 
 type ConnectionStatus = "disconnected" | "connecting" | "qr_ready" | "connected";
 
-export default function WhatsAppConnect({ serverUrl, onLog }: WhatsAppConnectProps) {
-  const [instanceName, setInstanceName] = useState("atendeia");
-  const [apiKey, setApiKey] = useState("");
+const INSTANCE_NAME = "atendeia";
+
+export default function WhatsAppConnect({ serverUrl, evolutionApiKey, onLog }: WhatsAppConnectProps) {
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -23,6 +23,7 @@ export default function WhatsAppConnect({ serverUrl, onLog }: WhatsAppConnectPro
   const { toast } = useToast();
 
   const baseUrl = serverUrl.replace(/\/+$/, "");
+  const apiKey = evolutionApiKey;
 
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {
@@ -32,9 +33,9 @@ export default function WhatsAppConnect({ serverUrl, onLog }: WhatsAppConnectPro
   }, []);
 
   const checkConnectionState = useCallback(async () => {
-    if (!baseUrl || !apiKey || !instanceName) return;
+    if (!baseUrl || !apiKey) return;
     try {
-      const res = await fetch(`${baseUrl}/instance/connectionState/${instanceName}`, {
+      const res = await fetch(`${baseUrl}/instance/connectionState/${INSTANCE_NAME}`, {
         headers: { apikey: apiKey },
       });
       if (!res.ok) return;
@@ -50,51 +51,49 @@ export default function WhatsAppConnect({ serverUrl, onLog }: WhatsAppConnectPro
     } catch {
       // silently ignore polling errors
     }
-  }, [baseUrl, apiKey, instanceName, stopPolling, onLog, toast]);
+  }, [baseUrl, apiKey, stopPolling, onLog, toast]);
 
   useEffect(() => {
     return () => stopPolling();
   }, [stopPolling]);
 
   const handleConnect = async () => {
-    if (!baseUrl || !apiKey || !instanceName.trim()) {
-      toast({ title: "Preencha todos os campos", variant: "destructive" });
+    if (!baseUrl || !apiKey) {
+      toast({ title: "Configuração incompleta", description: "Salve a URL e API Key primeiro.", variant: "destructive" });
       return;
     }
 
     setLoading(true);
     setQrCode(null);
     setStatus("connecting");
-    onLog({ type: "info", message: `Criando instância "${instanceName}"...` });
 
     try {
-      // Step 1: Create the instance first
-      onLog({ type: "info", message: `POST /instance/create — criando "${instanceName}"...` });
+      // Step 1: Create the instance
+      onLog({ type: "info", message: `POST /instance/create — criando "${INSTANCE_NAME}"...` });
       const createRes = await fetch(`${baseUrl}/instance/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json", apikey: apiKey },
         body: JSON.stringify({
-          instanceName,
-          integration: "WHATSAPP-BAILEYS",
+          instanceName: INSTANCE_NAME,
+          token: apiKey,
           qrcode: true,
         }),
       });
 
       const createData = await createRes.json().catch(() => null);
       if (!createRes.ok && createRes.status !== 403 && createRes.status !== 409) {
-        // 403/409 usually means instance already exists — that's fine
         const createMsg = createData?.message || createData?.error || `HTTP ${createRes.status}`;
         onLog({ type: "warning", message: `Criar instância: ${createMsg} (continuando...)` });
       } else {
         onLog({ type: "success", message: "Instância criada/existente. Buscando QR Code..." });
       }
 
-      // Small delay to let the server register the instance
+      // Small delay for server to register
       await new Promise((r) => setTimeout(r, 1500));
 
-      // Step 2: Connect to get QR code
-      onLog({ type: "info", message: `GET /instance/connect/${instanceName}...` });
-      const res = await fetch(`${baseUrl}/instance/connect/${instanceName}`, {
+      // Step 2: Get QR code
+      onLog({ type: "info", message: `GET /instance/connect/${INSTANCE_NAME}...` });
+      const res = await fetch(`${baseUrl}/instance/connect/${INSTANCE_NAME}`, {
         headers: { apikey: apiKey },
       });
 
@@ -112,11 +111,9 @@ export default function WhatsAppConnect({ serverUrl, onLog }: WhatsAppConnectPro
         setStatus("qr_ready");
         onLog({ type: "success", message: "QR Code gerado! Escaneie com seu WhatsApp." });
 
-        // Start polling for connection status
         stopPolling();
         pollingRef.current = setInterval(checkConnectionState, 4000);
       } else {
-        // Maybe already connected
         await checkConnectionState();
         if (status !== "connected") {
           throw new Error("QR Code não retornado pela API.");
@@ -138,7 +135,7 @@ export default function WhatsAppConnect({ serverUrl, onLog }: WhatsAppConnectPro
     stopPolling();
 
     try {
-      await fetch(`${baseUrl}/instance/logout/${instanceName}`, {
+      await fetch(`${baseUrl}/instance/logout/${INSTANCE_NAME}`, {
         method: "DELETE",
         headers: { apikey: apiKey },
       });
@@ -153,8 +150,6 @@ export default function WhatsAppConnect({ serverUrl, onLog }: WhatsAppConnectPro
       setDisconnecting(false);
     }
   };
-
-  const canConnect = baseUrl.startsWith("http") && apiKey.length >= 5 && instanceName.trim().length >= 1;
 
   return (
     <motion.div
@@ -179,29 +174,10 @@ export default function WhatsAppConnect({ serverUrl, onLog }: WhatsAppConnectPro
         )}
       </div>
 
-      {/* Instance config fields */}
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label className="text-sm font-medium mb-1.5 block text-foreground">Nome da Instância</label>
-          <Input
-            value={instanceName}
-            onChange={(e) => setInstanceName(e.target.value.replace(/\s/g, ""))}
-            placeholder="atendeia"
-            className="rounded-xl bg-background border-border text-foreground placeholder:text-muted-foreground"
-            disabled={status === "connected"}
-          />
-        </div>
-        <div>
-          <label className="text-sm font-medium mb-1.5 block text-foreground">API Key da Evolution</label>
-          <Input
-            type="password"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder="Sua apikey do servidor"
-            className="rounded-xl bg-background border-border text-foreground placeholder:text-muted-foreground"
-            disabled={status === "connected"}
-          />
-        </div>
+      <div className="text-xs text-muted-foreground space-y-1 bg-muted/30 rounded-xl p-3">
+        <p><span className="font-medium text-foreground">Instância:</span> {INSTANCE_NAME}</p>
+        <p><span className="font-medium text-foreground">Servidor:</span> {baseUrl || "—"}</p>
+        <p><span className="font-medium text-foreground">API Key:</span> {apiKey ? "••••••" + apiKey.slice(-4) : "—"}</p>
       </div>
 
       {/* QR Code display */}
@@ -248,7 +224,7 @@ export default function WhatsAppConnect({ serverUrl, onLog }: WhatsAppConnectPro
               <Wifi className="h-8 w-8 text-green-500" />
             </motion.div>
             <p className="font-semibold text-foreground">WhatsApp Conectado ✅</p>
-            <p className="text-sm text-muted-foreground">Instância: {instanceName}</p>
+            <p className="text-sm text-muted-foreground">Instância: {INSTANCE_NAME}</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -258,7 +234,7 @@ export default function WhatsAppConnect({ serverUrl, onLog }: WhatsAppConnectPro
         {status !== "connected" ? (
           <Button
             onClick={handleConnect}
-            disabled={!canConnect || loading}
+            disabled={!baseUrl || !apiKey || loading}
             className="rounded-xl w-full gap-2"
           >
             {loading ? (
