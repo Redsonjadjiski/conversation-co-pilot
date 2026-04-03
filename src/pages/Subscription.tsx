@@ -117,7 +117,12 @@ export default function Subscription() {
             </div>
 
             <h3 className="font-semibold text-lg">{plan.name}</h3>
-            <p className="text-sm text-muted-foreground mb-4">{plan.description}</p>
+            <p className="text-sm text-muted-foreground mb-2">{plan.description}</p>
+            {plan.afterNote && (
+              <p className="text-xs text-muted-foreground mb-2">
+                {plan.afterNote}
+              </p>
+            )}
 
             <div className="mb-2">
               <span className="text-3xl font-bold">{plan.price}</span>
