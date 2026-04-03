@@ -53,6 +53,16 @@ export default function AIBrain() {
     load();
   }, [user]);
 
+  const MAX_CHARS = 60000;
+
+  const sanitizeText = (text: string): string => {
+    return text
+      .replace(/[ \t]+/g, ' ')
+      .replace(/(\r?\n){3,}/g, '\n\n')
+      .replace(/^ +| +$/gm, '')
+      .trim();
+  };
+
   const handleSave = async () => {
     if (!user) {
       toast.error("Você precisa estar logado para salvar.");
@@ -63,9 +73,11 @@ export default function AIBrain() {
       return;
     }
 
+    const sanitized = sanitizeText(knowledge);
+    setKnowledge(sanitized);
+
     setSaving(true);
     try {
-      // Check if config already exists for this user
       const { data: existing } = await supabase
         .from("configuracoes_ia")
         .select("id")
@@ -74,28 +86,26 @@ export default function AIBrain() {
 
       let error;
       if (existing) {
-        // Update
         ({ error } = await supabase
           .from("configuracoes_ia")
           .update({
-            instrucoes_sistema: knowledge,
+            instrucoes_sistema: sanitized,
             nome_empresa: companyName || "Atende AI",
           })
           .eq("user_id", user.id));
       } else {
-        // Insert
         ({ error } = await supabase
           .from("configuracoes_ia")
           .insert({
             user_id: user.id,
-            instrucoes_sistema: knowledge,
+            instrucoes_sistema: sanitized,
             nome_empresa: companyName || "Atende AI",
           }));
       }
 
       if (error) throw error;
 
-      toast.success("Conhecimento salvo com sucesso! A IA já está usando as novas informações.");
+      toast.success("Conhecimento atualizado com sucesso! Sua IA já está mais inteligente.");
     } catch (err: any) {
       console.error("Erro ao salvar:", err);
       toast.error("Erro ao salvar: " + (err.message || "Tente novamente."));
@@ -144,13 +154,20 @@ export default function AIBrain() {
 
               <Textarea
                 value={knowledge}
-                onChange={(e) => setKnowledge(e.target.value)}
+                onChange={(e) => {
+                  if (e.target.value.length <= MAX_CHARS) {
+                    setKnowledge(e.target.value);
+                  }
+                }}
                 placeholder="Ex: Nosso produto custa R$97/mês no plano básico e R$297/mês no plano Pro. Oferecemos 14 dias de teste grátis..."
                 className="min-h-[200px] bg-background/50 border-border/50 rounded-xl resize-none text-sm"
                 disabled={loading}
+                maxLength={MAX_CHARS}
               />
               <div className="flex justify-between items-center mt-3">
-                <span className="text-xs text-muted-foreground">{knowledge.length} caracteres</span>
+                <span className={`text-xs ${knowledge.length >= MAX_CHARS ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                  {knowledge.length.toLocaleString('pt-BR')} / {MAX_CHARS.toLocaleString('pt-BR')} caracteres
+                </span>
                 <Button size="sm" className="rounded-xl" onClick={handleSave} disabled={saving || loading}>
                   {saving ? (
                     <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
