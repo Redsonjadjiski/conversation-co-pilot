@@ -4,6 +4,7 @@ import { MetricCard } from "@/components/MetricCard";
 import { MessageChart } from "@/components/MessageChart";
 import { HotLeads } from "@/components/HotLeads";
 import { RevenueCard } from "@/components/RevenueCard";
+import { UpgradeBanner } from "@/components/UpgradeBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
