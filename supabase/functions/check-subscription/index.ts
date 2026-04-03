@@ -65,10 +65,31 @@ serve(async (req) => {
       logStep("Active subscription", { productId, subscriptionEnd });
     }
 
+    // Fetch usage data from subscriptions table
+    let tokenUsed = 0, tokenLimit = 0, tokenExtras = 0, webhookUsed = 0, webhookLimit = 0;
+    const { data: subRow } = await supabaseClient
+      .from("subscriptions")
+      .select("token_used, token_limit, token_extras, webhook_used, webhook_limit")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (subRow) {
+      tokenUsed = subRow.token_used ?? 0;
+      tokenLimit = subRow.token_limit ?? 0;
+      tokenExtras = subRow.token_extras ?? 0;
+      webhookUsed = subRow.webhook_used ?? 0;
+      webhookLimit = subRow.webhook_limit ?? 0;
+    }
+
     return new Response(JSON.stringify({
       subscribed: hasActive,
       product_id: productId,
       subscription_end: subscriptionEnd,
+      token_used: tokenUsed,
+      token_limit: tokenLimit,
+      token_extras: tokenExtras,
+      webhook_used: webhookUsed,
+      webhook_limit: webhookLimit,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
