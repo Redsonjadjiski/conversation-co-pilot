@@ -8,11 +8,14 @@ interface SubscriptionInfo {
   subscription_end?: string | null;
 }
 
+const ADMIN_EMAIL = "jadjiski.ia@gmail.com";
+
 interface AuthContextType {
   session: Session | null;
   user: User | null;
   loading: boolean;
   subscription: SubscriptionInfo;
+  isAdmin: boolean;
   checkSubscription: () => Promise<void>;
   signOut: () => Promise<void>;
 }
