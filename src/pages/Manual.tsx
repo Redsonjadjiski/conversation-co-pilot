@@ -3,6 +3,7 @@ import { BookOpen, Lock, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import {
   Accordion,
   AccordionContent,
