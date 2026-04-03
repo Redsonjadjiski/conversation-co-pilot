@@ -358,10 +358,15 @@ export default function LandingPage() {
 
                 <h3 className="font-bold text-xl mb-1">{plan.name}</h3>
 
-                <div className="mt-4 mb-2">
+                <div className="mt-4 mb-1">
                   <span className="text-4xl font-black">{plan.price}</span>
                   <span className="text-sm text-muted-foreground">{plan.period}</span>
                 </div>
+
+                <p className="text-xs text-muted-foreground mb-1">{plan.detail}</p>
+                {plan.afterNote && (
+                  <p className="text-xs text-muted-foreground mb-3">Meses seguintes: <strong className="text-foreground">R$ 149,00/mês</strong></p>
+                )}
 
                 <div className={`text-xs font-semibold mb-6 px-3 py-1.5 rounded-lg inline-block w-fit ${
                   plan.noteStyle === "success"
