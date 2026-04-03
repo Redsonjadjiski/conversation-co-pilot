@@ -13,6 +13,7 @@ interface StepStatus {
   geminiKey: string;
   training: string;
   webhookUrl: string;
+  evolutionApiKey: string;
 }
 
 export type LogEntry = {
