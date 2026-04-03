@@ -366,6 +366,11 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
           )}
         </AnimatePresence>
       </motion.div>
+
+      {/* WhatsApp Connection via Evolution API */}
+      {allCompleted && (
+        <WhatsAppConnect serverUrl={fields.webhookUrl} onLog={onLog} />
+      )}
     </div>
   );
 }
