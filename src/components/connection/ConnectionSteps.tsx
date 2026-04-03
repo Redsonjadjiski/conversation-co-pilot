@@ -94,8 +94,8 @@ export default function ConnectionSteps({ onLog, onInstanceCreated }: Connection
     return {
       geminiKey: saved.geminiKey || "",
       training: saved.training || "",
-      webhookUrl: saved.webhookUrl || "",
-      evolutionApiKey: saved.evolutionApiKey || "",
+      webhookUrl: saved.webhookUrl || "https://evolution-api-production-21a8.up.railway.app",
+      evolutionApiKey: saved.evolutionApiKey || "atendeai2026",
     };
   });
 

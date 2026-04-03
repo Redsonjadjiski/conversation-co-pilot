@@ -13,6 +13,8 @@ interface WhatsAppConnectProps {
 type ConnectionStatus = "disconnected" | "connecting" | "qr_ready" | "connected";
 
 const INSTANCE_NAME = "atendeia";
+const DEFAULT_SERVER = "https://evolution-api-production-21a8.up.railway.app";
+const DEFAULT_API_KEY = "atendeai2026";
 
 export default function WhatsAppConnect({ serverUrl, evolutionApiKey, onLog }: WhatsAppConnectProps) {
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
@@ -22,8 +24,8 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, onLog }: W
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { toast } = useToast();
 
-  const baseUrl = serverUrl.replace(/\/+$/, "");
-  const apiKey = evolutionApiKey;
+  const baseUrl = (serverUrl || DEFAULT_SERVER).replace(/\/+$/, "");
+  const apiKey = evolutionApiKey || DEFAULT_API_KEY;
 
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {
