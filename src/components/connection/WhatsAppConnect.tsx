@@ -68,8 +68,9 @@ export default function WhatsAppConnect({ serverUrl, onLog }: WhatsAppConnectPro
     onLog({ type: "info", message: `Criando instância "${instanceName}"...` });
 
     try {
-      // First, try to create the instance
-      await fetch(`${baseUrl}/instance/create`, {
+      // Step 1: Create the instance first
+      onLog({ type: "info", message: `POST /instance/create — criando "${instanceName}"...` });
+      const createRes = await fetch(`${baseUrl}/instance/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json", apikey: apiKey },
         body: JSON.stringify({
@@ -79,14 +80,27 @@ export default function WhatsAppConnect({ serverUrl, onLog }: WhatsAppConnectPro
         }),
       });
 
-      // Then connect to get QR code
+      const createData = await createRes.json().catch(() => null);
+      if (!createRes.ok && createRes.status !== 403 && createRes.status !== 409) {
+        // 403/409 usually means instance already exists — that's fine
+        const createMsg = createData?.message || createData?.error || `HTTP ${createRes.status}`;
+        onLog({ type: "warning", message: `Criar instância: ${createMsg} (continuando...)` });
+      } else {
+        onLog({ type: "success", message: "Instância criada/existente. Buscando QR Code..." });
+      }
+
+      // Small delay to let the server register the instance
+      await new Promise((r) => setTimeout(r, 1500));
+
+      // Step 2: Connect to get QR code
+      onLog({ type: "info", message: `GET /instance/connect/${instanceName}...` });
       const res = await fetch(`${baseUrl}/instance/connect/${instanceName}`, {
         headers: { apikey: apiKey },
       });
 
       if (!res.ok) {
         const errData = await res.json().catch(() => null);
-        throw new Error(errData?.message || `HTTP ${res.status}`);
+        throw new Error(errData?.message || errData?.error || `HTTP ${res.status}`);
       }
 
       const data = await res.json();
