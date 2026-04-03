@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Key, Brain, Webhook, Check, Zap, Sparkles, ChevronRight, AlertCircle, Lock, Loader2, ExternalLink } from "lucide-react";
+import WhatsAppConnect from "./WhatsAppConnect";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
