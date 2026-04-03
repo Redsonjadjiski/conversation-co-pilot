@@ -44,6 +44,36 @@ export type Database = {
         }
         Relationships: []
       }
+      evolution_settings: {
+        Row: {
+          api_key: string
+          created_at: string
+          id: string
+          instance_name: string
+          server_url: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_key: string
+          created_at?: string
+          id?: string
+          instance_name?: string
+          server_url: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_key?: string
+          created_at?: string
+          id?: string
+          instance_name?: string
+          server_url?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           data_contato: string | null
