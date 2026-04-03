@@ -135,7 +135,7 @@ export default function AIBrain() {
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
                 placeholder="Nome da empresa (ex: Atende AI)"
-                className="mb-3 rounded-xl bg-background/50 border-border/50 text-sm"
+                className="mb-3 rounded-xl bg-background border-border text-foreground text-sm placeholder:text-muted-foreground"
               />
 
               <Textarea
