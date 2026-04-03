@@ -379,7 +379,7 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
 
       {/* WhatsApp Connection via Evolution API */}
       {allCompleted && (
-        <WhatsAppConnect serverUrl={fields.webhookUrl} onLog={onLog} />
+        <WhatsAppConnect serverUrl={fields.webhookUrl} evolutionApiKey={fields.evolutionApiKey} onLog={onLog} />
       )}
     </div>
   );
