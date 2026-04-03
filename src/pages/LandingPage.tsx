@@ -53,33 +53,33 @@ const features = [
 
 const plans = [
   {
-    name: "Plano Mensal",
-    price: "R$ 499",
-    period: " no 1º mês",
-    detail: "R$ 350 Taxa de Licença + R$ 149 Mensalidade",
-    afterNote: "Meses seguintes: R$ 149,00/mês",
-    note: "Inclui Manual de Configuração",
+    name: "IA Starter",
+    price: "R$ 277",
+    period: "/mês",
+    detail: "1 Número conectado • 5 Milhões de Tokens de IA",
+    afterNote: null,
+    note: "Ideal para começar a automatizar",
     noteStyle: "warning" as const,
     popular: false,
   },
   {
-    name: "Plano Anual",
-    price: "R$ 1.798",
-    period: " /ano (12x de R$ 149,90)",
-    detail: "Manual + Licença inclusos no valor",
+    name: "IA Pro",
+    price: "R$ 357",
+    period: "/mês",
+    detail: "1+ Números conectados • 10 Milhões de Tokens de IA",
     afterNote: null,
-    note: "TAXA DE LICENÇA GRÁTIS — Economia de R$ 350",
+    note: "Mais tokens, mais vendas, mais resultado",
     noteStyle: "success" as const,
     popular: true,
   },
 ];
 
 const featureList = [
-  "Mensagens ilimitadas",
   "Agente de IA personalizado",
   "Lead Tracker avançado",
-  "Suporte prioritário",
   "Dashboard completo",
+  "Suporte prioritário",
+  "Tokens extras disponíveis",
 ];
 
 export default function LandingPage() {
