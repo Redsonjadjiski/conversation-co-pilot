@@ -9,6 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
+const LS_KEY = "atendeia_connection_fields";
+
 interface StepStatus {
   geminiKey: string;
   training: string;
@@ -22,6 +24,20 @@ export type LogEntry = {
   type: "info" | "success" | "error" | "warning";
   message: string;
 };
+
+function loadFromLocalStorage(): Partial<StepStatus> {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return {};
+}
+
+function saveToLocalStorage(fields: StepStatus) {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(fields));
+  } catch {}
+}
 
 function StepIndicator({ step, currentStep, completed }: { step: number; currentStep: number; completed: boolean }) {
   const isActive = step === currentStep;
@@ -62,9 +78,10 @@ async function testGeminiKey(apiKey: string): Promise<{ valid: boolean; error?: 
 
 interface ConnectionStepsProps {
   onLog: (entry: Omit<LogEntry, "id" | "timestamp">) => void;
+  onInstanceCreated?: () => void;
 }
 
-export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
+export default function ConnectionSteps({ onLog, onInstanceCreated }: ConnectionStepsProps) {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [activated, setActivated] = useState(false);
@@ -72,20 +89,29 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
   const [validating, setValidating] = useState(false);
   const { toast } = useToast();
 
-  const [fields, setFields] = useState<StepStatus>({
-    geminiKey: "",
-    training: "",
-    webhookUrl: "",
-    evolutionApiKey: "",
+  const [fields, setFields] = useState<StepStatus>(() => {
+    const saved = loadFromLocalStorage();
+    return {
+      geminiKey: saved.geminiKey || "",
+      training: saved.training || "",
+      webhookUrl: saved.webhookUrl || "",
+      evolutionApiKey: saved.evolutionApiKey || "",
+    };
   });
 
   const [completed, setCompleted] = useState({ step1: false, step2: false, step3: false });
   const [apiError, setApiError] = useState<string | null>(null);
 
-  // Load existing config
+  // Save to localStorage on every field change
+  useEffect(() => {
+    saveToLocalStorage(fields);
+  }, [fields]);
+
+  // Load existing config from DB
   useEffect(() => {
     if (!user) return;
     async function loadConfig() {
+      // Load from configuracoes_ia
       const { data } = await supabase
         .from("configuracoes_ia")
         .select("*")
@@ -105,8 +131,26 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
           setFields(f => ({ ...f, webhookUrl: data.webhook_make! }));
           setCompleted(c => ({ ...c, step3: true }));
         }
-        if ((data as any).evolution_api_key) {
-          setFields(f => ({ ...f, evolutionApiKey: (data as any).evolution_api_key }));
+        if (data.evolution_api_key) {
+          setFields(f => ({ ...f, evolutionApiKey: data.evolution_api_key! }));
+        }
+      }
+
+      // Load from evolution_settings
+      const { data: evoData } = await supabase
+        .from("evolution_settings")
+        .select("*")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+
+      if (evoData) {
+        setFields(f => ({
+          ...f,
+          webhookUrl: (evoData as any).server_url || f.webhookUrl,
+          evolutionApiKey: (evoData as any).api_key || f.evolutionApiKey,
+        }));
+        if ((evoData as any).server_url) {
+          setCompleted(c => ({ ...c, step3: true }));
         }
       }
     }
@@ -128,10 +172,28 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
       );
     if (error) {
       console.error("Upsert error, trying delete+insert:", error);
-      // Fallback: delete then insert
       await supabase.from("configuracoes_ia").delete().eq("user_id", user.id);
       await supabase.from("configuracoes_ia").insert({ ...data, user_id: user.id });
     }
+  };
+
+  const saveEvolutionSettings = async () => {
+    if (!user || !fields.webhookUrl || !fields.evolutionApiKey) return;
+    const payload = {
+      user_id: user.id,
+      server_url: fields.webhookUrl,
+      api_key: fields.evolutionApiKey,
+      instance_name: "atendeia",
+    };
+    const { error } = await supabase
+      .from("evolution_settings")
+      .upsert(payload, { onConflict: "user_id" });
+    if (error) {
+      console.error("Evolution settings upsert error:", error);
+      await supabase.from("evolution_settings").delete().eq("user_id", user.id);
+      await supabase.from("evolution_settings").insert(payload);
+    }
+    onInstanceCreated?.();
   };
 
   const handleValidateStep1 = async () => {
@@ -170,6 +232,7 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
       onLog({ type: "success", message: "Treinamento salvo!" });
     } else if (step === 3 && isStep3Valid) {
       await upsertConfig({ webhook_make: fields.webhookUrl, evolution_api_key: fields.evolutionApiKey });
+      await saveEvolutionSettings();
       setCompleted((prev) => ({ ...prev, step3: true }));
       onLog({ type: "success", message: "Configuração da Evolution API salva!" });
     }
@@ -217,7 +280,7 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
       {/* Step content */}
       <AnimatePresence mode="wait">
         {currentStep === 1 && (
-          <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }} className="glass-card rounded-2xl p-6 space-y-5">
+          <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }} className="rounded-2xl bg-card border border-border p-6 space-y-5 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Key className="h-5 w-5 text-primary" />
@@ -235,12 +298,7 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
             <div>
               <label className="text-sm font-medium mb-1.5 block text-foreground">Gemini API Key</label>
               <Input type="password" value={fields.geminiKey} onChange={(e) => { setFields((f) => ({ ...f, geminiKey: e.target.value })); setApiError(null); }} placeholder="AIza..." className="rounded-xl bg-background border-border text-foreground placeholder:text-muted-foreground" />
-              <a
-                href="https://aistudio.google.com/app/apikey"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1.5"
-              >
+              <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1.5">
                 <ExternalLink className="h-3 w-3" />
                 Obtenha sua chave no Google AI Studio
               </a>
@@ -257,7 +315,7 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
         )}
 
         {currentStep === 2 && (
-          <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }} className="glass-card rounded-2xl p-6 space-y-5">
+          <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }} className="rounded-2xl bg-card border border-border p-6 space-y-5 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Brain className="h-5 w-5 text-primary" />
@@ -285,7 +343,7 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
         )}
 
         {currentStep === 3 && (
-          <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }} className="glass-card rounded-2xl p-6 space-y-5">
+          <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }} className="rounded-2xl bg-card border border-border p-6 space-y-5 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Webhook className="h-5 w-5 text-primary" />
@@ -318,7 +376,7 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
       </AnimatePresence>
 
       {/* Activate button */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card rounded-2xl p-8 flex flex-col items-center relative overflow-hidden">
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="rounded-2xl bg-card border border-border p-8 flex flex-col items-center relative overflow-hidden shadow-sm">
         <AnimatePresence mode="wait">
           {showSuccess && !activated ? (
             <motion.div key="success-animation" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} className="flex flex-col items-center gap-4 py-4">
