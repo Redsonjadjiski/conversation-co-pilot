@@ -76,6 +76,7 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
     geminiKey: "",
     training: "",
     webhookUrl: "",
+    evolutionApiKey: "",
   });
 
   const [completed, setCompleted] = useState({ step1: false, step2: false, step3: false });
