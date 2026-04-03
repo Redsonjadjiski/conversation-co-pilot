@@ -10,10 +10,10 @@ interface SubscriptionLockProps {
 }
 
 export function SubscriptionLock({ children, featureName }: SubscriptionLockProps) {
-  const { subscription } = useAuth();
+  const { subscription, isAdmin } = useAuth();
   const navigate = useNavigate();
 
-  if (subscription.subscribed) {
+  if (subscription.subscribed || isAdmin) {
     return <>{children}</>;
   }
 

@@ -8,11 +8,14 @@ interface SubscriptionInfo {
   subscription_end?: string | null;
 }
 
+const ADMIN_EMAIL = "jadjiski.ia@gmail.com";
+
 interface AuthContextType {
   session: Session | null;
   user: User | null;
   loading: boolean;
   subscription: SubscriptionInfo;
+  isAdmin: boolean;
   checkSubscription: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -26,6 +29,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [subscription, setSubscription] = useState<SubscriptionInfo>({ subscribed: false });
+
+  const isAdmin = user?.email === ADMIN_EMAIL;
 
   const checkSubscription = useCallback(async () => {
     try {
@@ -91,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, loading, subscription, checkSubscription, signOut }}>
+    <AuthContext.Provider value={{ session, user, loading, subscription, isAdmin, checkSubscription, signOut }}>
       {children}
     </AuthContext.Provider>
   );

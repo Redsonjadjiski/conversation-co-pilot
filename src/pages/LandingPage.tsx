@@ -133,15 +133,15 @@ export default function LandingPage() {
               </motion.div>
 
               <motion.h1 variants={fadeUp} custom={1} className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
-                Seu WhatsApp{" "}
-                <span className="gradient-text-neon">vendendo sozinho</span>{" "}
-                24h por dia com{" "}
-                <span className="gradient-text">Inteligência Artificial</span>
+                Recupere{" "}
+                <span className="gradient-text-neon">vendas perdidas</span>{" "}
+                no WhatsApp sem contratar{" "}
+                <span className="gradient-text">mais funcionários</span>
               </motion.h1>
 
               <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground max-w-xl">
-                A IA que responde, qualifica, envia proposta e fecha vendas no WhatsApp —{" "}
-                <strong className="text-foreground">enquanto você dorme</strong>
+                Sua IA treinada com os seus dados, pronta para fechar boletos e tirar dúvidas{" "}
+                <strong className="text-foreground">24h por dia</strong>
               </motion.p>
 
               {/* Mini stats */}
@@ -211,7 +211,7 @@ export default function LandingPage() {
                     </div>
                     <div className="flex justify-start">
                       <div className="bg-card/60 border border-border/30 rounded-2xl rounded-bl-sm px-4 py-2.5 max-w-[80%]">
-                        <p className="text-sm">Perfeito! ✨ Inclui IA 24/7, Lead Tracker, follow-up automático e suporte. Posso ativar seu teste grátis?</p>
+                        <p className="text-sm">Perfeito! ✨ Inclui IA 24/7, Lead Tracker, follow-up automático e suporte. Posso gerar seu boleto agora?</p>
                       </div>
                     </div>
                     <div className="flex justify-end">
