@@ -105,6 +105,9 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
           setFields(f => ({ ...f, webhookUrl: data.webhook_make! }));
           setCompleted(c => ({ ...c, step3: true }));
         }
+        if ((data as any).evolution_api_key) {
+          setFields(f => ({ ...f, evolutionApiKey: (data as any).evolution_api_key }));
+        }
       }
     }
     loadConfig();
