@@ -399,7 +399,7 @@ export default function LandingPage() {
           </div>
 
           <p className="text-center text-xs text-muted-foreground mt-8">
-            ✅ Sem cartão de crédito · Garantia de 7 dias · Cancele quando quiser
+            ✅ Cadastro gratuito · Garantia de 7 dias · Cancele quando quiser
           </p>
         </div>
       </section>
