@@ -154,13 +154,20 @@ export default function AIBrain() {
 
               <Textarea
                 value={knowledge}
-                onChange={(e) => setKnowledge(e.target.value)}
+                onChange={(e) => {
+                  if (e.target.value.length <= MAX_CHARS) {
+                    setKnowledge(e.target.value);
+                  }
+                }}
                 placeholder="Ex: Nosso produto custa R$97/mês no plano básico e R$297/mês no plano Pro. Oferecemos 14 dias de teste grátis..."
                 className="min-h-[200px] bg-background/50 border-border/50 rounded-xl resize-none text-sm"
                 disabled={loading}
+                maxLength={MAX_CHARS}
               />
               <div className="flex justify-between items-center mt-3">
-                <span className="text-xs text-muted-foreground">{knowledge.length} caracteres</span>
+                <span className={`text-xs ${knowledge.length >= MAX_CHARS ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                  {knowledge.length.toLocaleString('pt-BR')} / {MAX_CHARS.toLocaleString('pt-BR')} caracteres
+                </span>
                 <Button size="sm" className="rounded-xl" onClick={handleSave} disabled={saving || loading}>
                   {saving ? (
                     <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
