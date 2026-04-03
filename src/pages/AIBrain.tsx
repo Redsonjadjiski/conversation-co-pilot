@@ -78,30 +78,16 @@ export default function AIBrain() {
 
     setSaving(true);
     try {
-      const { data: existing } = await supabase
+      const { error } = await supabase
         .from("configuracoes_ia")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      let error;
-      if (existing) {
-        ({ error } = await supabase
-          .from("configuracoes_ia")
-          .update({
-            instrucoes_sistema: sanitized,
-            nome_empresa: companyName || "Atende AI",
-          })
-          .eq("user_id", user.id));
-      } else {
-        ({ error } = await supabase
-          .from("configuracoes_ia")
-          .insert({
+        .upsert(
+          {
             user_id: user.id,
             instrucoes_sistema: sanitized,
             nome_empresa: companyName || "Atende AI",
-          }));
-      }
+          },
+          { onConflict: "user_id" }
+        );
 
       if (error) throw error;
 
