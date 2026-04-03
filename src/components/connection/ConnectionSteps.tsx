@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Key, Brain, Webhook, Check, Zap, Sparkles, ChevronRight, AlertCircle, Lock, Loader2 } from "lucide-react";
+import { Key, Brain, Webhook, Check, Zap, Sparkles, ChevronRight, AlertCircle, Lock, Loader2, ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface StepStatus {
-  openaiKey: string;
+  geminiKey: string;
   training: string;
   webhookUrl: string;
 }
@@ -43,18 +43,18 @@ function StepIndicator({ step, currentStep, completed }: { step: number; current
   );
 }
 
-async function testOpenAIKey(apiKey: string): Promise<{ valid: boolean; error?: string }> {
+async function testGeminiKey(apiKey: string): Promise<{ valid: boolean; error?: string }> {
   try {
-    const response = await fetch("https://api.openai.com/v1/models", {
-      method: "GET",
-      headers: { Authorization: `Bearer ${apiKey}` },
-    });
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`,
+      { method: "GET" }
+    );
     if (response.ok) return { valid: true };
-    if (response.status === 401) return { valid: false, error: "Chave inválida ou expirada." };
+    if (response.status === 400 || response.status === 403) return { valid: false, error: "Chave inválida ou sem permissão." };
     if (response.status === 429) return { valid: false, error: "Rate limit atingido." };
     return { valid: false, error: `Erro inesperado (HTTP ${response.status}).` };
   } catch {
-    return { valid: false, error: "Não foi possível conectar à OpenAI." };
+    return { valid: false, error: "Não foi possível conectar à API do Google." };
   }
 }
 
@@ -71,7 +71,7 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
   const { toast } = useToast();
 
   const [fields, setFields] = useState<StepStatus>({
-    openaiKey: "",
+    geminiKey: "",
     training: "",
     webhookUrl: "",
   });
@@ -91,7 +91,7 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
 
       if (data) {
         if (data.openai_api_key) {
-          setFields(f => ({ ...f, openaiKey: data.openai_api_key! }));
+          setFields(f => ({ ...f, geminiKey: data.openai_api_key! }));
           setCompleted(c => ({ ...c, step1: true }));
         }
         if (data.instrucoes_sistema && data.instrucoes_sistema.length >= 50) {
@@ -107,46 +107,41 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
     loadConfig();
   }, [user]);
 
-  const isStep1Valid = fields.openaiKey.startsWith("sk-") && fields.openaiKey.length >= 20;
+  const isStep1Valid = fields.geminiKey.startsWith("AIza") && fields.geminiKey.length >= 20;
   const isStep2Valid = fields.training.trim().length >= 50;
   const isStep3Valid = fields.webhookUrl.startsWith("http") && fields.webhookUrl.length >= 10;
   const allCompleted = completed.step1 && completed.step2 && completed.step3;
 
   const upsertConfig = async (data: Record<string, any>) => {
     if (!user) return;
-    // Try update first
-    const { data: existing } = await supabase
+    const { error } = await supabase
       .from("configuracoes_ia")
-      .select("id")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (existing) {
-      await supabase
-        .from("configuracoes_ia")
-        .update(data)
-        .eq("user_id", user.id);
-    } else {
-      await supabase
-        .from("configuracoes_ia")
-        .insert({ ...data, user_id: user.id });
+      .upsert(
+        { ...data, user_id: user.id },
+        { onConflict: "user_id" }
+      );
+    if (error) {
+      console.error("Upsert error, trying delete+insert:", error);
+      // Fallback: delete then insert
+      await supabase.from("configuracoes_ia").delete().eq("user_id", user.id);
+      await supabase.from("configuracoes_ia").insert({ ...data, user_id: user.id });
     }
   };
 
   const handleValidateStep1 = async () => {
     setValidating(true);
     setApiError(null);
-    onLog({ type: "info", message: "Testando chave da OpenAI..." });
+    onLog({ type: "info", message: "Testando chave do Gemini..." });
 
-    const result = await testOpenAIKey(fields.openaiKey);
+    const result = await testGeminiKey(fields.geminiKey);
     setValidating(false);
 
     if (result.valid) {
-      await upsertConfig({ openai_api_key: fields.openaiKey });
+      await upsertConfig({ openai_api_key: fields.geminiKey });
       setCompleted((prev) => ({ ...prev, step1: true }));
       setCurrentStep(2);
-      onLog({ type: "success", message: "Chave OpenAI validada e salva!" });
-      toast({ title: "✅ Chave válida!", description: "Conexão com a OpenAI confirmada." });
+      onLog({ type: "success", message: "Chave Gemini validada e salva!" });
+      toast({ title: "✅ Chave válida!", description: "Conexão com o Google Gemini confirmada." });
     } else {
       setApiError(result.error ?? "Erro desconhecido");
       onLog({ type: "error", message: `Falha: ${result.error}` });
@@ -184,7 +179,7 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
   };
 
   const stepTitles = [
-    { icon: Key, label: "Chave OpenAI" },
+    { icon: Key, label: "Gemini API Key" },
     { icon: Brain, label: "Treine a IA" },
     { icon: Webhook, label: "Webhook" },
   ];
@@ -222,8 +217,8 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
                 <Key className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold">Passo 1: Chave OpenAI</h3>
-                <p className="text-sm text-muted-foreground">Insira sua API Key</p>
+                <h3 className="font-semibold text-foreground">Passo 1: Gemini API Key</h3>
+                <p className="text-sm text-muted-foreground">Insira sua chave do Google AI Studio</p>
               </div>
               {completed.step1 && (
                 <div className="ml-auto h-7 w-7 rounded-full bg-success/20 flex items-center justify-center">
@@ -232,10 +227,19 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
               )}
             </div>
             <div>
-              <label className="text-sm font-medium mb-1.5 block">OpenAI API Key</label>
-              <Input type="password" value={fields.openaiKey} onChange={(e) => { setFields((f) => ({ ...f, openaiKey: e.target.value })); setApiError(null); }} placeholder="sk-proj-..." className="rounded-xl bg-background/50 border-border/50" />
+              <label className="text-sm font-medium mb-1.5 block text-foreground">Gemini API Key</label>
+              <Input type="password" value={fields.geminiKey} onChange={(e) => { setFields((f) => ({ ...f, geminiKey: e.target.value })); setApiError(null); }} placeholder="AIza..." className="rounded-xl bg-background border-border text-foreground placeholder:text-muted-foreground" />
+              <a
+                href="https://aistudio.google.com/app/apikey"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1.5"
+              >
+                <ExternalLink className="h-3 w-3" />
+                Obtenha sua chave no Google AI Studio
+              </a>
               {apiError && <p className="text-xs text-destructive mt-1.5 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{apiError}</p>}
-              {fields.openaiKey.length > 0 && !isStep1Valid && !apiError && <p className="text-xs text-destructive mt-1.5 flex items-center gap-1"><AlertCircle className="h-3 w-3" />A chave deve começar com "sk-" e ter pelo menos 20 caracteres</p>}
+              {fields.geminiKey.length > 0 && !isStep1Valid && !apiError && <p className="text-xs text-destructive mt-1.5 flex items-center gap-1"><AlertCircle className="h-3 w-3" />A chave deve começar com "AIza" e ter pelo menos 20 caracteres</p>}
               {isStep1Valid && !completed.step1 && !apiError && <p className="text-xs text-success mt-1.5 flex items-center gap-1"><Check className="h-3 w-3" />Formato válido</p>}
             </div>
             <Button onClick={() => handleValidateStep(1)} disabled={!isStep1Valid || validating || completed.step1} className="rounded-xl w-full">
@@ -253,13 +257,13 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
                 <Brain className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold">Passo 2: Treine a IA</h3>
+                <h3 className="font-semibold text-foreground">Passo 2: Treine a IA</h3>
                 <p className="text-sm text-muted-foreground">Cole informações sobre seu negócio (mínimo 50 caracteres)</p>
               </div>
               {completed.step2 && <div className="ml-auto h-7 w-7 rounded-full bg-success/20 flex items-center justify-center"><Check className="h-4 w-4 text-success" /></div>}
             </div>
             <div>
-              <Textarea value={fields.training} onChange={(e) => setFields((f) => ({ ...f, training: e.target.value }))} placeholder="Descreva seu produto, preços, diferenciais..." className="min-h-[160px] bg-background/50 border-border/50 rounded-xl resize-none text-sm" />
+              <Textarea value={fields.training} onChange={(e) => setFields((f) => ({ ...f, training: e.target.value }))} placeholder="Descreva seu produto, preços, diferenciais..." className="min-h-[160px] bg-background border-border rounded-xl resize-none text-sm text-foreground placeholder:text-muted-foreground" />
               <div className="flex justify-between mt-1.5">
                 <p className={`text-xs ${fields.training.length >= 50 ? "text-success" : "text-muted-foreground"}`}>
                   {fields.training.length}/50 caracteres {fields.training.length >= 50 ? "✓" : "(mínimo)"}
@@ -281,14 +285,14 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
                 <Webhook className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold">Passo 3: Ative o Webhook</h3>
+                <h3 className="font-semibold text-foreground">Passo 3: Ative o Webhook</h3>
                 <p className="text-sm text-muted-foreground">URL da Evolution API</p>
               </div>
               {completed.step3 && <div className="ml-auto h-7 w-7 rounded-full bg-success/20 flex items-center justify-center"><Check className="h-4 w-4 text-success" /></div>}
             </div>
             <div>
-              <label className="text-sm font-medium mb-1.5 block">URL do Webhook</label>
-              <Input value={fields.webhookUrl} onChange={(e) => setFields((f) => ({ ...f, webhookUrl: e.target.value }))} placeholder="https://sua-api.evolution.com/webhook" className="rounded-xl bg-background/50 border-border/50" />
+              <label className="text-sm font-medium mb-1.5 block text-foreground">URL do Webhook</label>
+              <Input value={fields.webhookUrl} onChange={(e) => setFields((f) => ({ ...f, webhookUrl: e.target.value }))} placeholder="https://sua-api.evolution.com/webhook" className="rounded-xl bg-background border-border text-foreground placeholder:text-muted-foreground" />
               {fields.webhookUrl.length > 0 && !isStep3Valid && <p className="text-xs text-destructive mt-1.5 flex items-center gap-1"><AlertCircle className="h-3 w-3" /> URL inválida</p>}
               {isStep3Valid && !completed.step3 && <p className="text-xs text-success mt-1.5 flex items-center gap-1"><Check className="h-3 w-3" /> URL válida</p>}
             </div>
@@ -311,7 +315,7 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
                   <Check className="h-10 w-10 text-success" />
                 </motion.div>
               </motion.div>
-              <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="text-lg font-semibold">Agente Ativado com Sucesso! 🚀</motion.p>
+              <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="text-lg font-semibold text-foreground">Agente Ativado com Sucesso! 🚀</motion.p>
               <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }} className="text-sm text-muted-foreground">Seu agente Atende AI está online.</motion.p>
             </motion.div>
           ) : activated ? (
