@@ -108,6 +108,31 @@
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   }
+
+  /* Light mode: force dark text on inputs, labels, textareas */
+  :root input,
+  :root textarea,
+  :root select,
+  :root label {
+    color: hsl(222 47% 11%);
+  }
+
+  :root input::placeholder,
+  :root textarea::placeholder {
+    color: hsl(215 16% 47%);
+  }
+
+  .dark input,
+  .dark textarea,
+  .dark select,
+  .dark label {
+    color: hsl(210 40% 96%);
+  }
+
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: hsl(215 20% 55%);
+  }
 }
 
 @layer utilities {
