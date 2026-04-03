@@ -54,9 +54,11 @@ const features = [
 const plans = [
   {
     name: "Plano Mensal",
-    price: "R$ 149",
-    period: "/mês",
-    note: "+ R$ 497,00 de Taxa de Setup",
+    price: "R$ 499",
+    period: " no 1º mês",
+    detail: "R$ 350 Taxa de Licença + R$ 149 Mensalidade",
+    afterNote: "Meses seguintes: R$ 149,00/mês",
+    note: "Inclui Manual de Configuração",
     noteStyle: "warning" as const,
     popular: false,
   },
@@ -64,7 +66,9 @@ const plans = [
     name: "Plano Anual",
     price: "R$ 1.798",
     period: " /ano (12x de R$ 149,90)",
-    note: "SETUP GRÁTIS — Economia de R$ 497",
+    detail: "Manual + Licença inclusos no valor",
+    afterNote: null,
+    note: "TAXA DE LICENÇA GRÁTIS — Economia de R$ 350",
     noteStyle: "success" as const,
     popular: true,
   },
@@ -101,11 +105,11 @@ export default function LandingPage() {
                 Entrar
               </Button>
             </Link>
-            <a href="#precos">
+            <Link to="/auth">
               <Button size="sm" className="neon-cta rounded-xl">
-                Testar Grátis
+                Começar Agora
               </Button>
-            </a>
+            </Link>
           </div>
         </div>
       </nav>
@@ -166,7 +170,7 @@ export default function LandingPage() {
               </motion.div>
 
               <motion.p variants={fadeUp} custom={5} className="text-xs text-muted-foreground">
-                ✅ Sem cartão de crédito · Garantia de 7 dias · Cancele quando quiser
+                ✅ Cadastro gratuito · Garantia de 7 dias · Cancele quando quiser
               </motion.p>
             </motion.div>
 
@@ -354,10 +358,15 @@ export default function LandingPage() {
 
                 <h3 className="font-bold text-xl mb-1">{plan.name}</h3>
 
-                <div className="mt-4 mb-2">
+                <div className="mt-4 mb-1">
                   <span className="text-4xl font-black">{plan.price}</span>
                   <span className="text-sm text-muted-foreground">{plan.period}</span>
                 </div>
+
+                <p className="text-xs text-muted-foreground mb-1">{plan.detail}</p>
+                {plan.afterNote && (
+                  <p className="text-xs text-muted-foreground mb-3">Meses seguintes: <strong className="text-foreground">R$ 149,00/mês</strong></p>
+                )}
 
                 <div className={`text-xs font-semibold mb-6 px-3 py-1.5 rounded-lg inline-block w-fit ${
                   plan.noteStyle === "success"
@@ -390,7 +399,7 @@ export default function LandingPage() {
           </div>
 
           <p className="text-center text-xs text-muted-foreground mt-8">
-            ✅ Sem cartão de crédito · Garantia de 7 dias · Cancele quando quiser
+            ✅ Cadastro gratuito · Garantia de 7 dias · Cancele quando quiser
           </p>
         </div>
       </section>
@@ -412,7 +421,7 @@ export default function LandingPage() {
             <motion.div variants={fadeUp} custom={2}>
               <Link to="/auth">
                 <Button size="lg" className="neon-cta rounded-xl text-base px-10 py-6">
-                  Começar Teste Grátis <ArrowRight className="ml-2 h-5 w-5" />
+                  Começar Agora <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
             </motion.div>

@@ -9,10 +9,11 @@ import { useState } from "react";
 const PLANS = {
   monthly: {
     name: "Plano Mensal",
-    price: "R$ 149,00",
-    period: "/mês",
-    description: "Ideal para quem quer testar.",
-    note: "+ R$ 497,00 de Taxa de Setup",
+    price: "R$ 499,00",
+    period: " no 1º mês",
+    description: "R$ 350 Taxa de Licença + R$ 149 Mensalidade",
+    afterNote: "Meses seguintes: R$ 149,00/mês",
+    note: "Inclui Manual de Configuração",
     priceId: "price_1THaAkBdS2ci3z0zKYPlv2GS",
     popular: false,
     icon: Calendar,
@@ -21,8 +22,9 @@ const PLANS = {
     name: "Plano Anual",
     price: "R$ 1.798,80",
     period: " (ou 12x de R$ 149,90)",
-    description: "Melhor custo-benefício.",
-    note: "SETUP GRÁTIS (Economia de R$ 497,00)",
+    description: "Manual + Licença inclusos no valor.",
+    afterNote: null,
+    note: "TAXA DE LICENÇA GRÁTIS (Economia de R$ 350)",
     priceId: "price_1THaCxBdS2ci3z0zpv6asYZx",
     popular: true,
     icon: Crown,
@@ -115,7 +117,12 @@ export default function Subscription() {
             </div>
 
             <h3 className="font-semibold text-lg">{plan.name}</h3>
-            <p className="text-sm text-muted-foreground mb-4">{plan.description}</p>
+            <p className="text-sm text-muted-foreground mb-2">{plan.description}</p>
+            {plan.afterNote && (
+              <p className="text-xs text-muted-foreground mb-2">
+                {plan.afterNote}
+              </p>
+            )}
 
             <div className="mb-2">
               <span className="text-3xl font-bold">{plan.price}</span>
