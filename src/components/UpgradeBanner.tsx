@@ -5,10 +5,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
 
 export function UpgradeBanner() {
-  const { subscription } = useAuth();
+  const { subscription, isAdmin } = useAuth();
   const navigate = useNavigate();
 
-  if (subscription.subscribed) return null;
+  if (subscription.subscribed || isAdmin) return null;
 
   return (
     <motion.div
