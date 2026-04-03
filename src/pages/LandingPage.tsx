@@ -170,7 +170,7 @@ export default function LandingPage() {
               </motion.div>
 
               <motion.p variants={fadeUp} custom={5} className="text-xs text-muted-foreground">
-                ✅ Sem cartão de crédito · Garantia de 7 dias · Cancele quando quiser
+                ✅ Cadastro gratuito · Garantia de 7 dias · Cancele quando quiser
               </motion.p>
             </motion.div>
 
