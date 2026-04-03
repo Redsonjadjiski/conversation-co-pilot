@@ -27,7 +27,7 @@ export default function AIBrain() {
   const [companyName, setCompanyName] = useState("");
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [chatMessages, setChatMessages] = useState([welcomeMessage]);
+  const [chatMessages, setChatMessages] = useState<{ role: "user" | "assistant"; text: string }[]>([welcomeMessage]);
   const [testInput, setTestInput] = useState("");
 
   // Load existing config on mount
