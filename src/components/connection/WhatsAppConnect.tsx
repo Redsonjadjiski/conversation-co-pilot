@@ -70,7 +70,7 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, onLog }: W
     setStatus("connecting");
 
     try {
-      // Step 1: Create the instance
+      // Step 1: Create the instance (must succeed or already exist before connecting)
       onLog({ type: "info", message: `POST /instance/create — criando "${INSTANCE_NAME}"...` });
       const createRes = await fetch(`${baseUrl}/instance/create`, {
         method: "POST",
@@ -83,15 +83,18 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, onLog }: W
       });
 
       const createData = await createRes.json().catch(() => null);
-      if (!createRes.ok && createRes.status !== 403 && createRes.status !== 409) {
-        const createMsg = createData?.message || createData?.error || `HTTP ${createRes.status}`;
-        onLog({ type: "warning", message: `Criar instância: ${createMsg} (continuando...)` });
+      
+      if (createRes.ok || createRes.status === 201) {
+        onLog({ type: "success", message: "Instância criada com sucesso! Buscando QR Code..." });
+      } else if (createRes.status === 403 || createRes.status === 409) {
+        onLog({ type: "info", message: "Instância já existe. Buscando QR Code..." });
       } else {
-        onLog({ type: "success", message: "Instância criada/existente. Buscando QR Code..." });
+        const createMsg = createData?.message || createData?.error || `HTTP ${createRes.status}`;
+        onLog({ type: "warning", message: `Criar instância: ${createMsg} (tentando continuar...)` });
       }
 
-      // Small delay for server to register
-      await new Promise((r) => setTimeout(r, 1500));
+      // Wait for server to register the instance
+      await new Promise((r) => setTimeout(r, 2000));
 
       // Step 2: Get QR code
       onLog({ type: "info", message: `GET /instance/connect/${INSTANCE_NAME}...` });
