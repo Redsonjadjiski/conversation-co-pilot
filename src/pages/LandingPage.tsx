@@ -105,11 +105,11 @@ export default function LandingPage() {
                 Entrar
               </Button>
             </Link>
-            <a href="#precos">
+            <Link to="/auth">
               <Button size="sm" className="neon-cta rounded-xl">
-                Testar Grátis
+                Começar Agora
               </Button>
-            </a>
+            </Link>
           </div>
         </div>
       </nav>
