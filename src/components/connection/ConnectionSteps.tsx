@@ -169,9 +169,9 @@ export default function ConnectionSteps({ onLog }: ConnectionStepsProps) {
       setCurrentStep(3);
       onLog({ type: "success", message: "Treinamento salvo!" });
     } else if (step === 3 && isStep3Valid) {
-      await upsertConfig({ webhook_make: fields.webhookUrl });
+      await upsertConfig({ webhook_make: fields.webhookUrl, evolution_api_key: fields.evolutionApiKey });
       setCompleted((prev) => ({ ...prev, step3: true }));
-      onLog({ type: "success", message: "Webhook salvo e ativo!" });
+      onLog({ type: "success", message: "Configuração da Evolution API salva!" });
     }
   };
 
