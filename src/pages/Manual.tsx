@@ -158,5 +158,3 @@ export default function ManualPage() {
   );
 }
 
-// Need toast import
-import { toast } from "sonner";
