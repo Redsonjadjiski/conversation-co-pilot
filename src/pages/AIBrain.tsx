@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Brain, Send, Bot, User, Sparkles } from "lucide-react";
+import { Brain, Send, Bot, User, Sparkles, Loader2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SubscriptionLock } from "@/components/SubscriptionLock";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 const personalities = [
   { id: "aggressive", label: "Vendedor Agressivo", desc: "Foca em fechar vendas rapidamente com urgência e escassez." },
@@ -17,24 +20,96 @@ const welcomeMessage = {
   text: "👋 Olá! Eu sou o agente Atende AI. Estou pronto para atender seus clientes! Faça um teste — me envie uma mensagem como se fosse um lead interessado.",
 };
 
-const mockMessages = [
-  welcomeMessage,
-  { role: "user" as const, text: "Oi, quanto custa o plano?" },
-  { role: "assistant" as const, text: "Olá! 😊 Temos opções a partir de R$97/mês. Posso te mostrar qual se encaixa melhor no seu negócio?" },
-];
-
 export default function AIBrain() {
+  const { user } = useAuth();
   const [personality, setPersonality] = useState("friendly");
   const [knowledge, setKnowledge] = useState("");
-  const [chatMessages, setChatMessages] = useState(mockMessages);
+  const [companyName, setCompanyName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [chatMessages, setChatMessages] = useState([welcomeMessage]);
   const [testInput, setTestInput] = useState("");
+
+  // Load existing config on mount
+  useEffect(() => {
+    if (!user) return;
+    const load = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("configuracoes_ia")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (data) {
+        setKnowledge(data.instrucoes_sistema ?? "");
+        setCompanyName(data.nome_empresa ?? "");
+      }
+      if (error) {
+        console.error("Erro ao carregar configuração:", error);
+      }
+      setLoading(false);
+    };
+    load();
+  }, [user]);
+
+  const handleSave = async () => {
+    if (!user) {
+      toast.error("Você precisa estar logado para salvar.");
+      return;
+    }
+    if (!knowledge.trim()) {
+      toast.error("Insira o conhecimento antes de salvar.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // Check if config already exists for this user
+      const { data: existing } = await supabase
+        .from("configuracoes_ia")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      let error;
+      if (existing) {
+        // Update
+        ({ error } = await supabase
+          .from("configuracoes_ia")
+          .update({
+            instrucoes_sistema: knowledge,
+            nome_empresa: companyName || "Atende AI",
+          })
+          .eq("user_id", user.id));
+      } else {
+        // Insert
+        ({ error } = await supabase
+          .from("configuracoes_ia")
+          .insert({
+            user_id: user.id,
+            instrucoes_sistema: knowledge,
+            nome_empresa: companyName || "Atende AI",
+          }));
+      }
+
+      if (error) throw error;
+
+      toast.success("Conhecimento salvo com sucesso! A IA já está usando as novas informações.");
+    } catch (err: any) {
+      console.error("Erro ao salvar:", err);
+      toast.error("Erro ao salvar: " + (err.message || "Tente novamente."));
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleTestSend = () => {
     if (!testInput.trim()) return;
     setChatMessages((prev) => [
       ...prev,
-      { role: "user", text: testInput },
-      { role: "assistant", text: "Entendi! Deixa eu verificar isso para você. Com base no conhecimento configurado, posso te ajudar com mais detalhes sobre isso." },
+      { role: "user" as const, text: testInput },
+      { role: "assistant" as const, text: "Entendi! Deixa eu verificar isso para você. Com base no conhecimento configurado, posso te ajudar com mais detalhes sobre isso." },
     ]);
     setTestInput("");
   };
@@ -59,17 +134,30 @@ export default function AIBrain() {
             >
               <h3 className="font-semibold mb-1">Conhecimento da Empresa</h3>
               <p className="text-sm text-muted-foreground mb-4">Cole textos, preços, FAQs e manuais do seu negócio</p>
+
+              <Input
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                placeholder="Nome da empresa (ex: Atende AI)"
+                className="mb-3 rounded-xl bg-background/50 border-border/50 text-sm"
+              />
+
               <Textarea
                 value={knowledge}
                 onChange={(e) => setKnowledge(e.target.value)}
                 placeholder="Ex: Nosso produto custa R$97/mês no plano básico e R$297/mês no plano Pro. Oferecemos 14 dias de teste grátis..."
                 className="min-h-[200px] bg-background/50 border-border/50 rounded-xl resize-none text-sm"
+                disabled={loading}
               />
               <div className="flex justify-between items-center mt-3">
                 <span className="text-xs text-muted-foreground">{knowledge.length} caracteres</span>
-                <Button size="sm" className="rounded-xl">
-                  <Sparkles className="h-4 w-4 mr-1.5" />
-                  Salvar Conhecimento
+                <Button size="sm" className="rounded-xl" onClick={handleSave} disabled={saving || loading}>
+                  {saving ? (
+                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 mr-1.5" />
+                  )}
+                  {saving ? "Salvando..." : "Salvar Conhecimento"}
                 </Button>
               </div>
             </motion.div>
