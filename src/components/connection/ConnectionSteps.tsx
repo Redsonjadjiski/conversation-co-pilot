@@ -185,7 +185,7 @@ export default function ConnectionSteps({ onLog, onInstanceCreated }: Connection
       user_id: user.id,
       server_url: fields.webhookUrl,
       api_key: fields.evolutionApiKey,
-      instance_name: "atendeia",
+      instance_name: fields.instanceName,
     };
     const { error } = await supabase
       .from("evolution_settings")
