@@ -60,8 +60,12 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, onLog }: W
   }, [stopPolling]);
 
   const handleConnect = async () => {
-    if (!baseUrl || !apiKey) {
-      toast({ title: "Configuração incompleta", description: "Salve a URL e API Key primeiro.", variant: "destructive" });
+    const finalUrl = (serverUrl || DEFAULT_SERVER).replace(/\/+$/, "");
+    const finalKey = "atendeai2026";
+    const instanceName = "atendeia";
+
+    if (!finalUrl) {
+      toast({ title: "Configuração incompleta", description: "Salve a URL primeiro.", variant: "destructive" });
       return;
     }
 
@@ -70,36 +74,32 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, onLog }: W
     setStatus("connecting");
 
     try {
-      // Step 1: Create the instance (must succeed or already exist before connecting)
-      onLog({ type: "info", message: `POST /instance/create — criando "${INSTANCE_NAME}"...` });
-      const createRes = await fetch(`${baseUrl}/instance/create`, {
+      // Step 1: Create the instance
+      onLog({ type: "info", message: `POST ${finalUrl}/instance/create — criando "${instanceName}"...` });
+      const createRes = await fetch(`${finalUrl}/instance/create`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", apikey: apiKey },
-        body: JSON.stringify({
-          instanceName: INSTANCE_NAME,
-          token: apiKey,
-          qrcode: true,
-        }),
+        headers: { "Content-Type": "application/json", apikey: finalKey },
+        body: JSON.stringify({ instanceName, token: finalKey, qrcode: true }),
       });
 
       const createData = await createRes.json().catch(() => null);
-      
+
       if (createRes.ok || createRes.status === 201) {
-        onLog({ type: "success", message: "Instância criada com sucesso! Buscando QR Code..." });
+        onLog({ type: "success", message: "Instância criada com sucesso!" });
       } else if (createRes.status === 403 || createRes.status === 409) {
-        onLog({ type: "info", message: "Instância já existe. Buscando QR Code..." });
+        onLog({ type: "info", message: "Instância já existe, seguindo para QR Code..." });
       } else {
-        const createMsg = createData?.message || createData?.error || `HTTP ${createRes.status}`;
-        onLog({ type: "warning", message: `Criar instância: ${createMsg} (tentando continuar...)` });
+        const msg = createData?.message || createData?.error || `HTTP ${createRes.status}`;
+        onLog({ type: "warning", message: `Criar instância: ${msg} — tentando buscar QR mesmo assim...` });
       }
 
-      // Wait for server to register the instance
-      await new Promise((r) => setTimeout(r, 2000));
+      // Wait for server to register
+      await new Promise((r) => setTimeout(r, 2500));
 
       // Step 2: Get QR code
-      onLog({ type: "info", message: `GET /instance/connect/${INSTANCE_NAME}...` });
-      const res = await fetch(`${baseUrl}/instance/connect/${INSTANCE_NAME}`, {
-        headers: { apikey: apiKey },
+      onLog({ type: "info", message: `GET ${finalUrl}/instance/connect/${instanceName}...` });
+      const res = await fetch(`${finalUrl}/instance/connect/${instanceName}`, {
+        headers: { apikey: finalKey },
       });
 
       if (!res.ok) {
