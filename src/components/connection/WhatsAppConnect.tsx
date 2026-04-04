@@ -74,6 +74,32 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, onLog }: W
     setStatus("connecting");
 
     try {
+      // Step 0: Validate authentication against fetchInstances with both possible header keys
+      onLog({ type: "info", message: `Validando autenticação em ${finalUrl}/instance/fetchInstances...` });
+
+      let authValidated = false;
+      const authHeaders = [
+        { headerName: "AUTHENTICATION_API_KEY", headers: { "Content-Type": "application/json", "AUTHENTICATION_API_KEY": finalKey, apikey: finalKey } },
+        { headerName: "CHAVE_API_DE_AUTENTICAÇÃO", headers: { "Content-Type": "application/json", "CHAVE_API_DE_AUTENTICAÇÃO": finalKey, apikey: finalKey } },
+      ];
+
+      for (const { headerName, headers } of authHeaders) {
+        try {
+          const validateRes = await fetch(`${finalUrl}/instance/fetchInstances`, { headers });
+          if (validateRes.ok || validateRes.status === 200) {
+            onLog({ type: "success", message: `Autenticação validada via ${headerName}.` });
+            authValidated = true;
+            break;
+          }
+        } catch {
+          // try next header
+        }
+      }
+
+      if (!authValidated) {
+        onLog({ type: "warning", message: "Nenhuma das chaves de autenticação foi aceita em /instance/fetchInstances. Tentando continuar..." });
+      }
+
       // Step 1: Create the instance
       onLog({ type: "info", message: `POST ${finalUrl}/instance/create — criando "${instanceName}"...` });
       const createRes = await fetch(`${finalUrl}/instance/create`, {
