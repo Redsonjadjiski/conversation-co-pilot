@@ -27,6 +27,7 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
 
   const baseUrl = (serverUrl || DEFAULT_SERVER).replace(/\/+$/, "");
   const apiKey = evolutionApiKey || DEFAULT_API_KEY;
+  const instName = instanceName || DEFAULT_INSTANCE;
 
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {

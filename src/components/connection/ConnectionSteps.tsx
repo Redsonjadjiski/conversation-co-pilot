@@ -444,7 +444,7 @@ export default function ConnectionSteps({ onLog, onInstanceCreated }: Connection
 
       {/* WhatsApp Connection via Evolution API */}
       {allCompleted && (
-        <WhatsAppConnect serverUrl={fields.webhookUrl} evolutionApiKey={fields.evolutionApiKey} onLog={onLog} />
+        <WhatsAppConnect serverUrl={fields.webhookUrl} evolutionApiKey={fields.evolutionApiKey} instanceName={fields.instanceName} onLog={onLog} />
       )}
     </div>
   );
