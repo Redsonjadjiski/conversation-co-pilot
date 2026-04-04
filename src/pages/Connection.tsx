@@ -4,12 +4,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ConnectionSteps from "@/components/connection/ConnectionSteps";
 import HelpFAQ from "@/components/connection/HelpFAQ";
 import ErrorLogs from "@/components/connection/ErrorLogs";
+import WhatsAppConnect from "@/components/connection/WhatsAppConnect";
 import { SubscriptionLock } from "@/components/SubscriptionLock";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import type { LogEntry } from "@/components/connection/ConnectionSteps";
+
+const DEFAULT_SERVER = "https://evolution-api-production-c130.up.railway.app";
+const DEFAULT_API_KEY = "atendeai2026";
+const DEFAULT_INSTANCE = "atendeai";
 
 interface EvolutionInstance {
   id: string;
@@ -25,6 +30,7 @@ export default function Connection() {
   const [instances, setInstances] = useState<EvolutionInstance[]>([]);
   const [showNewConnection, setShowNewConnection] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [autoInstanceReady, setAutoInstanceReady] = useState(false);
 
   const addLog = useCallback((entry: Omit<LogEntry, "id" | "timestamp">) => {
     setLogs((prev) => [
@@ -33,9 +39,34 @@ export default function Connection() {
     ]);
   }, []);
 
-  // Load instances from DB
+  // Auto-create default instance in DB on page load
   useEffect(() => {
     if (!user) return;
+    async function ensureInstance() {
+      const { data } = await supabase
+        .from("evolution_settings")
+        .select("*")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+
+      if (!data) {
+        // Create default instance in DB
+        await supabase.from("evolution_settings").insert({
+          user_id: user!.id,
+          server_url: DEFAULT_SERVER,
+          api_key: DEFAULT_API_KEY,
+          instance_name: DEFAULT_INSTANCE,
+        });
+        addLog({ type: "info", message: "Instância padrão 'atendeai' criada automaticamente." });
+      }
+      setAutoInstanceReady(true);
+    }
+    ensureInstance();
+  }, [user, addLog]);
+
+  // Load instances from DB
+  useEffect(() => {
+    if (!user || !autoInstanceReady) return;
     async function load() {
       setLoading(true);
       const { data } = await supabase
@@ -55,10 +86,11 @@ export default function Connection() {
       setLoading(false);
     }
     load();
-  }, [user]);
+  }, [user, autoInstanceReady]);
 
   // Check connection status for each instance
   useEffect(() => {
+    if (instances.length === 0) return;
     instances.forEach(async (inst) => {
       try {
         const baseUrl = inst.server_url.replace(/\/+$/, "");
@@ -85,7 +117,6 @@ export default function Connection() {
 
   const handleInstanceCreated = () => {
     setShowNewConnection(false);
-    // Reload instances
     if (user) {
       supabase
         .from("evolution_settings")
@@ -139,6 +170,15 @@ export default function Connection() {
           <TabsContent value="setup" className="space-y-6">
             <ConnectionSteps onLog={addLog} onInstanceCreated={handleInstanceCreated} />
 
+            {/* Always-visible WhatsApp Connect */}
+            <WhatsAppConnect
+              serverUrl={DEFAULT_SERVER}
+              evolutionApiKey={DEFAULT_API_KEY}
+              instanceName={DEFAULT_INSTANCE}
+              onLog={addLog}
+              autoConnect={autoInstanceReady}
+            />
+
             {/* Instances Grid */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -160,9 +200,8 @@ export default function Connection() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* New Connection Card */}
                   <AnimatePresence>
-                    {(instances.length === 0 || showNewConnection) && (
+                    {showNewConnection && (
                       <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -179,7 +218,6 @@ export default function Connection() {
                     )}
                   </AnimatePresence>
 
-                  {/* Instance Cards */}
                   {instances.map((inst) => (
                     <motion.div
                       key={inst.id}
