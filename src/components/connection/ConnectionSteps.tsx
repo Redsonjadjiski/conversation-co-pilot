@@ -97,6 +97,7 @@ export default function ConnectionSteps({ onLog, onInstanceCreated }: Connection
       training: saved.training || "",
       webhookUrl: saved.webhookUrl || "https://evolution-api-production-21a8.up.railway.app",
       evolutionApiKey: saved.evolutionApiKey || "atendeai2026",
+      instanceName: saved.instanceName || "atendeai",
     };
   });
 
