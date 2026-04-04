@@ -39,7 +39,7 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
   const checkConnectionState = useCallback(async () => {
     if (!baseUrl || !apiKey) return;
     try {
-      const res = await fetch(`${baseUrl}/instance/connectionState/${INSTANCE_NAME}`, {
+      const res = await fetch(`${baseUrl}/instance/connectionState/${instName}`, {
         headers: { apikey: apiKey },
       });
       if (!res.ok) return;
@@ -168,7 +168,7 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
     stopPolling();
 
     try {
-      await fetch(`${baseUrl}/instance/logout/${INSTANCE_NAME}`, {
+      await fetch(`${baseUrl}/instance/logout/${instName}`, {
         method: "DELETE",
         headers: { apikey: apiKey },
       });
@@ -208,7 +208,7 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
       </div>
 
       <div className="text-xs text-muted-foreground space-y-1 bg-muted/30 rounded-xl p-3">
-        <p><span className="font-medium text-foreground">Instância:</span> {INSTANCE_NAME}</p>
+        <p><span className="font-medium text-foreground">Instância:</span> {instName}</p>
         <p><span className="font-medium text-foreground">Servidor:</span> {baseUrl || "—"}</p>
         <p><span className="font-medium text-foreground">API Key:</span> {apiKey ? "••••••" + apiKey.slice(-4) : "—"}</p>
       </div>
@@ -257,7 +257,7 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
               <Wifi className="h-8 w-8 text-green-500" />
             </motion.div>
             <p className="font-semibold text-foreground">WhatsApp Conectado ✅</p>
-            <p className="text-sm text-muted-foreground">Instância: {INSTANCE_NAME}</p>
+            <p className="text-sm text-muted-foreground">Instância: {instName}</p>
           </motion.div>
         )}
       </AnimatePresence>
