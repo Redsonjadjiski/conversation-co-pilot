@@ -103,11 +103,11 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
       }
 
       // Step 1: Create the instance
-      onLog({ type: "info", message: `POST ${finalUrl}/instance/create — criando "${instanceName}"...` });
+      onLog({ type: "info", message: `POST ${finalUrl}/instance/create — criando "${finalInstanceName}"...` });
       const createRes = await fetch(`${finalUrl}/instance/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json", apikey: finalKey },
-        body: JSON.stringify({ instanceName, token: finalKey, qrcode: true }),
+        body: JSON.stringify({ finalInstanceName, token: finalKey, qrcode: true }),
       });
 
       const createData = await createRes.json().catch(() => null);
@@ -125,8 +125,8 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
       await new Promise((r) => setTimeout(r, 2500));
 
       // Step 2: Get QR code
-      onLog({ type: "info", message: `GET ${finalUrl}/instance/connect/${instanceName}...` });
-      const res = await fetch(`${finalUrl}/instance/connect/${instanceName}`, {
+      onLog({ type: "info", message: `GET ${finalUrl}/instance/connect/${finalInstanceName}...` });
+      const res = await fetch(`${finalUrl}/instance/connect/${finalInstanceName}`, {
         headers: { apikey: finalKey },
       });
 
