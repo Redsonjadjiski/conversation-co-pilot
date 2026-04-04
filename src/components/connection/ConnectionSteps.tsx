@@ -16,6 +16,7 @@ interface StepStatus {
   training: string;
   webhookUrl: string;
   evolutionApiKey: string;
+  instanceName: string;
 }
 
 export type LogEntry = {
