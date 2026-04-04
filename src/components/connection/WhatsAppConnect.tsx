@@ -64,7 +64,7 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
   const handleConnect = async () => {
     const finalUrl = (serverUrl || DEFAULT_SERVER).replace(/\/+$/, "");
     const finalKey = "atendeai2026";
-    const instanceName = "atendeia";
+    const finalInstanceName = instName;
 
     if (!finalUrl) {
       toast({ title: "Configuração incompleta", description: "Salve a URL primeiro.", variant: "destructive" });
