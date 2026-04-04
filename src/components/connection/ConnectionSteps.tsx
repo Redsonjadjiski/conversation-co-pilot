@@ -16,6 +16,7 @@ interface StepStatus {
   training: string;
   webhookUrl: string;
   evolutionApiKey: string;
+  instanceName: string;
 }
 
 export type LogEntry = {
@@ -96,6 +97,7 @@ export default function ConnectionSteps({ onLog, onInstanceCreated }: Connection
       training: saved.training || "",
       webhookUrl: saved.webhookUrl || "https://evolution-api-production-21a8.up.railway.app",
       evolutionApiKey: saved.evolutionApiKey || "atendeai2026",
+      instanceName: saved.instanceName || "atendeai",
     };
   });
 
@@ -183,7 +185,7 @@ export default function ConnectionSteps({ onLog, onInstanceCreated }: Connection
       user_id: user.id,
       server_url: fields.webhookUrl,
       api_key: fields.evolutionApiKey,
-      instance_name: "atendeia",
+      instance_name: fields.instanceName,
     };
     const { error } = await supabase
       .from("evolution_settings")
@@ -366,6 +368,11 @@ export default function ConnectionSteps({ onLog, onInstanceCreated }: Connection
               <Input type="password" value={fields.evolutionApiKey} onChange={(e) => setFields((f) => ({ ...f, evolutionApiKey: e.target.value }))} placeholder="Sua API Key global do servidor" className="rounded-xl bg-background border-border text-foreground placeholder:text-muted-foreground" />
               <p className="text-xs text-muted-foreground mt-1.5">A senha de autenticação do seu servidor Evolution API</p>
             </div>
+            <div>
+              <label className="text-sm font-medium mb-1.5 block text-foreground">Nome da Instância</label>
+              <Input value={fields.instanceName} onChange={(e) => setFields((f) => ({ ...f, instanceName: e.target.value }))} placeholder="atendeai" className="rounded-xl bg-background border-border text-foreground placeholder:text-muted-foreground" />
+              <p className="text-xs text-muted-foreground mt-1.5">Nome da instância no Evolution API (padrão: atendeai)</p>
+            </div>
             <Button onClick={() => handleValidateStep(3)} disabled={!isStep3Valid || validating || completed.step3} className="rounded-xl w-full">
               {validating ? <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Testando...</span>
                 : completed.step3 ? <span className="flex items-center gap-2"><Check className="h-4 w-4" /> Concluído</span>
@@ -437,7 +444,7 @@ export default function ConnectionSteps({ onLog, onInstanceCreated }: Connection
 
       {/* WhatsApp Connection via Evolution API */}
       {allCompleted && (
-        <WhatsAppConnect serverUrl={fields.webhookUrl} evolutionApiKey={fields.evolutionApiKey} onLog={onLog} />
+        <WhatsAppConnect serverUrl={fields.webhookUrl} evolutionApiKey={fields.evolutionApiKey} instanceName={fields.instanceName} onLog={onLog} />
       )}
     </div>
   );

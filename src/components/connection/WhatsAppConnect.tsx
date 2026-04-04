@@ -7,16 +7,17 @@ import { useToast } from "@/hooks/use-toast";
 interface WhatsAppConnectProps {
   serverUrl: string;
   evolutionApiKey: string;
+  instanceName?: string;
   onLog: (entry: { type: "info" | "success" | "error" | "warning"; message: string }) => void;
 }
 
 type ConnectionStatus = "disconnected" | "connecting" | "qr_ready" | "connected";
 
-const INSTANCE_NAME = "atendeia";
+const DEFAULT_INSTANCE = "atendeai";
 const DEFAULT_SERVER = "https://evolution-api-production-21a8.up.railway.app";
 const DEFAULT_API_KEY = "atendeai2026";
 
-export default function WhatsAppConnect({ serverUrl, evolutionApiKey, onLog }: WhatsAppConnectProps) {
+export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceName, onLog }: WhatsAppConnectProps) {
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -26,6 +27,7 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, onLog }: W
 
   const baseUrl = (serverUrl || DEFAULT_SERVER).replace(/\/+$/, "");
   const apiKey = evolutionApiKey || DEFAULT_API_KEY;
+  const instName = instanceName || DEFAULT_INSTANCE;
 
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {
@@ -37,7 +39,7 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, onLog }: W
   const checkConnectionState = useCallback(async () => {
     if (!baseUrl || !apiKey) return;
     try {
-      const res = await fetch(`${baseUrl}/instance/connectionState/${INSTANCE_NAME}`, {
+      const res = await fetch(`${baseUrl}/instance/connectionState/${instName}`, {
         headers: { apikey: apiKey },
       });
       if (!res.ok) return;
@@ -62,7 +64,7 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, onLog }: W
   const handleConnect = async () => {
     const finalUrl = (serverUrl || DEFAULT_SERVER).replace(/\/+$/, "");
     const finalKey = "atendeai2026";
-    const instanceName = "atendeia";
+    const finalInstanceName = instName;
 
     if (!finalUrl) {
       toast({ title: "Configuração incompleta", description: "Salve a URL primeiro.", variant: "destructive" });
@@ -101,11 +103,11 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, onLog }: W
       }
 
       // Step 1: Create the instance
-      onLog({ type: "info", message: `POST ${finalUrl}/instance/create — criando "${instanceName}"...` });
+      onLog({ type: "info", message: `POST ${finalUrl}/instance/create — criando "${finalInstanceName}"...` });
       const createRes = await fetch(`${finalUrl}/instance/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json", apikey: finalKey },
-        body: JSON.stringify({ instanceName, token: finalKey, qrcode: true }),
+        body: JSON.stringify({ finalInstanceName, token: finalKey, qrcode: true }),
       });
 
       const createData = await createRes.json().catch(() => null);
@@ -123,8 +125,8 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, onLog }: W
       await new Promise((r) => setTimeout(r, 2500));
 
       // Step 2: Get QR code
-      onLog({ type: "info", message: `GET ${finalUrl}/instance/connect/${instanceName}...` });
-      const res = await fetch(`${finalUrl}/instance/connect/${instanceName}`, {
+      onLog({ type: "info", message: `GET ${finalUrl}/instance/connect/${finalInstanceName}...` });
+      const res = await fetch(`${finalUrl}/instance/connect/${finalInstanceName}`, {
         headers: { apikey: finalKey },
       });
 
@@ -166,7 +168,7 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, onLog }: W
     stopPolling();
 
     try {
-      await fetch(`${baseUrl}/instance/logout/${INSTANCE_NAME}`, {
+      await fetch(`${baseUrl}/instance/logout/${instName}`, {
         method: "DELETE",
         headers: { apikey: apiKey },
       });
@@ -206,7 +208,7 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, onLog }: W
       </div>
 
       <div className="text-xs text-muted-foreground space-y-1 bg-muted/30 rounded-xl p-3">
-        <p><span className="font-medium text-foreground">Instância:</span> {INSTANCE_NAME}</p>
+        <p><span className="font-medium text-foreground">Instância:</span> {instName}</p>
         <p><span className="font-medium text-foreground">Servidor:</span> {baseUrl || "—"}</p>
         <p><span className="font-medium text-foreground">API Key:</span> {apiKey ? "••••••" + apiKey.slice(-4) : "—"}</p>
       </div>
@@ -255,7 +257,7 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, onLog }: W
               <Wifi className="h-8 w-8 text-green-500" />
             </motion.div>
             <p className="font-semibold text-foreground">WhatsApp Conectado ✅</p>
-            <p className="text-sm text-muted-foreground">Instância: {INSTANCE_NAME}</p>
+            <p className="text-sm text-muted-foreground">Instância: {instName}</p>
           </motion.div>
         )}
       </AnimatePresence>
