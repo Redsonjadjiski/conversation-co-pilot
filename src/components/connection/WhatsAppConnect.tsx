@@ -9,20 +9,22 @@ interface WhatsAppConnectProps {
   evolutionApiKey: string;
   instanceName?: string;
   onLog: (entry: { type: "info" | "success" | "error" | "warning"; message: string }) => void;
+  autoConnect?: boolean;
 }
 
 type ConnectionStatus = "disconnected" | "connecting" | "qr_ready" | "connected";
 
 const DEFAULT_INSTANCE = "atendeai";
-const DEFAULT_SERVER = "https://evolution-api-production-21a8.up.railway.app";
+const DEFAULT_SERVER = "https://evolution-api-production-c130.up.railway.app";
 const DEFAULT_API_KEY = "atendeai2026";
 
-export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceName, onLog }: WhatsAppConnectProps) {
+export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceName, onLog, autoConnect }: WhatsAppConnectProps) {
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autoConnectTriggered = useRef(false);
   const { toast } = useToast();
 
   const baseUrl = (serverUrl || DEFAULT_SERVER).replace(/\/+$/, "");
@@ -55,13 +57,13 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
     } catch {
       // silently ignore polling errors
     }
-  }, [baseUrl, apiKey, stopPolling, onLog, toast]);
+  }, [baseUrl, apiKey, instName, stopPolling, onLog, toast]);
 
   useEffect(() => {
     return () => stopPolling();
   }, [stopPolling]);
 
-  const handleConnect = async () => {
+  const handleConnect = useCallback(async () => {
     const finalUrl = (serverUrl || DEFAULT_SERVER).replace(/\/+$/, "");
     const finalKey = "atendeai2026";
     const finalInstanceName = instName;
@@ -76,7 +78,7 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
     setStatus("connecting");
 
     try {
-      // Step 0: Validate authentication against fetchInstances with both possible header keys
+      // Step 0: Validate authentication
       onLog({ type: "info", message: `Validando autenticação em ${finalUrl}/instance/fetchInstances...` });
 
       let authValidated = false;
@@ -99,7 +101,7 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
       }
 
       if (!authValidated) {
-        onLog({ type: "warning", message: "Nenhuma das chaves de autenticação foi aceita em /instance/fetchInstances. Tentando continuar..." });
+        onLog({ type: "warning", message: "Nenhuma das chaves de autenticação foi aceita. Tentando continuar..." });
       }
 
       // Step 1: Create the instance
@@ -107,7 +109,7 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
       const createRes = await fetch(`${finalUrl}/instance/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json", apikey: finalKey },
-        body: JSON.stringify({ finalInstanceName, token: finalKey, qrcode: true }),
+        body: JSON.stringify({ instanceName: finalInstanceName, token: finalKey, qrcode: true }),
       });
 
       const createData = await createRes.json().catch(() => null);
@@ -124,33 +126,54 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
       // Wait for server to register
       await new Promise((r) => setTimeout(r, 2500));
 
-      // Step 2: Get QR code
-      onLog({ type: "info", message: `GET ${finalUrl}/instance/connect/${finalInstanceName}...` });
-      const res = await fetch(`${finalUrl}/instance/connect/${finalInstanceName}`, {
-        headers: { apikey: finalKey },
-      });
+      // Step 2: Get QR code with retry
+      let qrObtained = false;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        onLog({ type: "info", message: `GET ${finalUrl}/instance/connect/${finalInstanceName} (tentativa ${attempt + 1})...` });
+        try {
+          const res = await fetch(`${finalUrl}/instance/connect/${finalInstanceName}`, {
+            headers: { apikey: finalKey },
+          });
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => null);
-        throw new Error(errData?.message || errData?.error || `HTTP ${res.status}`);
+          if (res.status === 404 && attempt < 2) {
+            onLog({ type: "warning", message: "Instância não encontrada, aguardando 3s..." });
+            await new Promise((r) => setTimeout(r, 3000));
+            continue;
+          }
+
+          if (!res.ok) {
+            const errData = await res.json().catch(() => null);
+            throw new Error(errData?.message || errData?.error || `HTTP ${res.status}`);
+          }
+
+          const data = await res.json();
+          const base64 = data?.base64 ?? data?.qrcode?.base64 ?? data?.qrcode;
+
+          if (base64) {
+            const src = base64.startsWith("data:image") ? base64 : `data:image/png;base64,${base64}`;
+            setQrCode(src);
+            setStatus("qr_ready");
+            onLog({ type: "success", message: "QR Code gerado! Escaneie com seu WhatsApp." });
+            qrObtained = true;
+
+            stopPolling();
+            pollingRef.current = setInterval(checkConnectionState, 4000);
+            break;
+          } else {
+            await checkConnectionState();
+            break;
+          }
+        } catch (err: any) {
+          if (attempt < 2) {
+            await new Promise((r) => setTimeout(r, 3000));
+            continue;
+          }
+          throw err;
+        }
       }
 
-      const data = await res.json();
-      const base64 = data?.base64 ?? data?.qrcode?.base64 ?? data?.qrcode;
-
-      if (base64) {
-        const src = base64.startsWith("data:image") ? base64 : `data:image/png;base64,${base64}`;
-        setQrCode(src);
-        setStatus("qr_ready");
-        onLog({ type: "success", message: "QR Code gerado! Escaneie com seu WhatsApp." });
-
-        stopPolling();
-        pollingRef.current = setInterval(checkConnectionState, 4000);
-      } else {
+      if (!qrObtained && status !== "connected") {
         await checkConnectionState();
-        if (status !== "connected") {
-          throw new Error("QR Code não retornado pela API.");
-        }
       }
     } catch (err: any) {
       setStatus("disconnected");
@@ -160,7 +183,15 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
     } finally {
       setLoading(false);
     }
-  };
+  }, [serverUrl, instName, stopPolling, checkConnectionState, onLog, toast, status]);
+
+  // Auto-connect on mount if requested
+  useEffect(() => {
+    if (autoConnect && !autoConnectTriggered.current && baseUrl && apiKey) {
+      autoConnectTriggered.current = true;
+      handleConnect();
+    }
+  }, [autoConnect, baseUrl, apiKey, handleConnect]);
 
   const handleDisconnect = async () => {
     setDisconnecting(true);
