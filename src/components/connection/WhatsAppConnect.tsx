@@ -7,16 +7,17 @@ import { useToast } from "@/hooks/use-toast";
 interface WhatsAppConnectProps {
   serverUrl: string;
   evolutionApiKey: string;
+  instanceName?: string;
   onLog: (entry: { type: "info" | "success" | "error" | "warning"; message: string }) => void;
 }
 
 type ConnectionStatus = "disconnected" | "connecting" | "qr_ready" | "connected";
 
-const INSTANCE_NAME = "atendeia";
+const DEFAULT_INSTANCE = "atendeai";
 const DEFAULT_SERVER = "https://evolution-api-production-21a8.up.railway.app";
 const DEFAULT_API_KEY = "atendeai2026";
 
-export default function WhatsAppConnect({ serverUrl, evolutionApiKey, onLog }: WhatsAppConnectProps) {
+export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceName, onLog }: WhatsAppConnectProps) {
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
