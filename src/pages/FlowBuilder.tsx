@@ -112,7 +112,6 @@ export default function FlowBuilder() {
   const selected = blocks.find(b => b.id === selectedBlock);
 
   return (
-    <SubscriptionLock featureName="Flow Builder">
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
