@@ -241,6 +241,5 @@ export default function FlowBuilder() {
           </div>
         </div>
       </div>
-    </SubscriptionLock>
   );
 }
