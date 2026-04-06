@@ -1,12 +1,16 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { MessageSquare, X, Bot, User } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
+import { MessageSquare, Plus, Pencil, Trash2, Search, Filter } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-
-const ADMIN_EMAIL = "jadjiski.ia@gmail.com";
+import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Lead {
   id: string;
@@ -17,154 +21,180 @@ interface Lead {
   data_contato: string | null;
 }
 
-interface DemoLead {
-  id: number;
-  name: string;
-  phone: string;
-  status: "ai" | "human";
-  score: number;
-  lastMessage: string;
-  time: string;
-  conversation: { role: "user" | "assistant"; text: string }[];
-}
-
-const demoLeads: DemoLead[] = [
-  { id: 1, name: "Carlos Silva", phone: "+55 11 9****-1234", status: "ai", score: 9, lastMessage: "Quero saber o preço do plano Pro", time: "2min",
-    conversation: [
-      { role: "user", text: "Oi, boa tarde!" },
-      { role: "assistant", text: "Olá Carlos! Bem-vindo 😊 Como posso ajudar?" },
-      { role: "user", text: "Quero saber o preço do plano Pro" },
-      { role: "assistant", text: "O plano Pro custa R$297/mês e inclui atendimento ilimitado + integrações premium. Quer que eu te explique todos os benefícios?" },
-    ],
-  },
-  { id: 2, name: "Ana Beatriz", phone: "+55 21 9****-5678", status: "ai", score: 8, lastMessage: "Vocês fazem integração com CRM?", time: "5min",
-    conversation: [
-      { role: "user", text: "Vocês fazem integração com CRM?" },
-      { role: "assistant", text: "Sim! Integramos com os principais CRMs do mercado: HubSpot, Pipedrive e RD Station." },
-    ],
-  },
-  { id: 3, name: "Pedro Santos", phone: "+55 31 9****-9012", status: "human", score: 5, lastMessage: "Preciso falar com um humano", time: "12min",
-    conversation: [
-      { role: "user", text: "Preciso falar com um humano" },
-      { role: "assistant", text: "Entendi! Estou transferindo para nossa equipe agora." },
-    ],
-  },
-  { id: 4, name: "Mariana Costa", phone: "+55 41 9****-3456", status: "ai", score: 3, lastMessage: "Só estou pesquisando", time: "25min",
-    conversation: [
-      { role: "user", text: "Só estou pesquisando por enquanto" },
-      { role: "assistant", text: "Sem problema! Fico à disposição. Posso enviar um resumo dos nossos planos por aqui?" },
-    ],
-  },
-  { id: 5, name: "Lucas Ferreira", phone: "+55 51 9****-7890", status: "ai", score: 7, lastMessage: "Tem desconto para pagamento anual?", time: "32min",
-    conversation: [
-      { role: "user", text: "Tem desconto para pagamento anual?" },
-      { role: "assistant", text: "Sim! No plano anual você economiza 20%. O Pro sai por R$237/mês! 🔥" },
-    ],
-  },
+const statusOptions = [
+  { value: "novo", label: "Novo" },
+  { value: "em_atendimento", label: "Em Atendimento" },
+  { value: "convertido", label: "Convertido" },
+  { value: "perdido", label: "Perdido" },
 ];
 
-function getThermometer(score: number) {
-  if (score >= 8) return { label: "Quente 🔥", className: "thermometer-hot" };
-  if (score >= 4) return { label: "Morno", className: "thermometer-warm" };
-  return { label: "Frio", className: "thermometer-cold" };
-}
+const statusColors: Record<string, string> = {
+  novo: "bg-blue-500/15 text-blue-400 border-blue-500/20",
+  em_atendimento: "bg-warning/15 text-warning border-warning/20",
+  convertido: "bg-success/15 text-success border-success/20",
+  perdido: "bg-destructive/15 text-destructive border-destructive/20",
+};
+
+const emptyLead = { nome: "", telefone: "", status: "novo", valor_recuperado: 0 };
 
 export default function LeadTracker() {
   const { user } = useAuth();
-  const isDemo = user?.email === ADMIN_EMAIL;
-  const [selectedDemoLead, setSelectedDemoLead] = useState<DemoLead | null>(null);
-  const [realLeads, setRealLeads] = useState<Lead[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState("todos");
+  const [search, setSearch] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [form, setForm] = useState(emptyLead);
+  const [saving, setSaving] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!user || isDemo) return;
-    async function fetchLeads() {
-      const { data } = await supabase
-        .from("leads")
-        .select("*")
-        .eq("user_id", user!.id)
-        .order("data_contato", { ascending: false });
-      if (data) setRealLeads(data);
-    }
-    fetchLeads();
-  }, [user, isDemo]);
+  const fetchLeads = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    const { data } = await supabase
+      .from("leads")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("data_contato", { ascending: false });
+    if (data) setLeads(data);
+    setLoading(false);
+  }, [user]);
 
-  const statusMap: Record<string, string> = {
-    novo: "Novo",
-    em_atendimento: "Em Atendimento",
-    convertido: "Convertido",
+  useEffect(() => { fetchLeads(); }, [fetchLeads]);
+
+  const openCreate = () => {
+    setEditingLead(null);
+    setForm(emptyLead);
+    setShowModal(true);
   };
+
+  const openEdit = (lead: Lead) => {
+    setEditingLead(lead);
+    setForm({
+      nome: lead.nome ?? "",
+      telefone: lead.telefone ?? "",
+      status: lead.status ?? "novo",
+      valor_recuperado: lead.valor_recuperado ?? 0,
+    });
+    setShowModal(true);
+  };
+
+  const handleSave = async () => {
+    if (!user || !form.nome.trim()) {
+      toast.error("Preencha o nome do lead");
+      return;
+    }
+    setSaving(true);
+    try {
+      if (editingLead) {
+        const { error } = await supabase.from("leads").update({
+          nome: form.nome,
+          telefone: form.telefone,
+          status: form.status,
+          valor_recuperado: form.valor_recuperado,
+        }).eq("id", editingLead.id);
+        if (error) throw error;
+        toast.success("Lead atualizado!");
+      } else {
+        const { error } = await supabase.from("leads").insert({
+          user_id: user.id,
+          nome: form.nome,
+          telefone: form.telefone,
+          status: form.status,
+          valor_recuperado: form.valor_recuperado,
+        });
+        if (error) throw error;
+        toast.success("Lead adicionado!");
+      }
+      setShowModal(false);
+      fetchLeads();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao salvar lead");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    const { error } = await supabase.from("leads").delete().eq("id", deleteId);
+    if (error) {
+      toast.error("Erro ao excluir lead");
+    } else {
+      toast.success("Lead excluído!");
+      fetchLeads();
+    }
+    setDeleteId(null);
+  };
+
+  const filtered = leads.filter(l => {
+    if (filterStatus !== "todos" && l.status !== filterStatus) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      if (!(l.nome?.toLowerCase().includes(q) || l.telefone?.toLowerCase().includes(q))) return false;
+    }
+    return true;
+  });
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-          <MessageSquare className="h-6 w-6 text-primary" />
-          Lead Tracker
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">Acompanhe seus leads em tempo real</p>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+            <MessageSquare className="h-6 w-6 text-primary" />
+            Lead Tracker
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">Gerencie seus leads em tempo real</p>
+        </div>
+        <Button className="neon-cta rounded-xl" onClick={openCreate}>
+          <Plus className="h-4 w-4 mr-2" /> Adicionar Lead
+        </Button>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="glass-card rounded-2xl overflow-hidden"
-      >
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Buscar por nome ou telefone..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 rounded-xl" />
+        </div>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-[180px] rounded-xl">
+            <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+            <SelectValue placeholder="Filtrar status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos</SelectItem>
+            {statusOptions.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Table */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-2xl overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow className="border-border/50 hover:bg-transparent">
               <TableHead className="text-xs font-medium text-muted-foreground">Lead</TableHead>
               <TableHead className="text-xs font-medium text-muted-foreground">Status</TableHead>
-              <TableHead className="text-xs font-medium text-muted-foreground">Interesse</TableHead>
-              <TableHead className="text-xs font-medium text-muted-foreground hidden md:table-cell">Última mensagem</TableHead>
-              <TableHead className="text-xs font-medium text-muted-foreground text-right">Tempo</TableHead>
+              <TableHead className="text-xs font-medium text-muted-foreground">Valor</TableHead>
+              <TableHead className="text-xs font-medium text-muted-foreground hidden md:table-cell">Data</TableHead>
+              <TableHead className="text-xs font-medium text-muted-foreground text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isDemo ? (
-              demoLeads.map((lead) => {
-                const therm = getThermometer(lead.score);
-                return (
-                  <TableRow
-                    key={lead.id}
-                    className="border-border/30 cursor-pointer hover:bg-accent/50 transition-colors"
-                    onClick={() => setSelectedDemoLead(lead)}
-                  >
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center text-sm font-semibold text-primary shrink-0">
-                          {lead.name.split(" ").map(n => n[0]).join("")}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">{lead.name}</p>
-                          <p className="text-[11px] text-muted-foreground">{lead.phone}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={lead.status === "ai" ? "default" : "secondary"} className="rounded-full text-[11px]">
-                        {lead.status === "ai" ? "IA Atendendo" : "Aguardando Humano"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className={`${therm.className} text-[11px] font-semibold px-2.5 py-1 rounded-full`}>
-                        {lead.score}/10 {therm.label}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate hidden md:table-cell">
-                      {lead.lastMessage}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground text-right">{lead.time}</TableCell>
-                  </TableRow>
-                );
-              })
-            ) : realLeads.length === 0 ? (
+            {loading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}><TableCell colSpan={5}><Skeleton className="h-10 w-full" /></TableCell></TableRow>
+              ))
+            ) : filtered.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                   Nenhum lead encontrado
                 </TableCell>
               </TableRow>
             ) : (
-              realLeads.map((lead) => (
+              filtered.map(lead => (
                 <TableRow key={lead.id} className="border-border/30">
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -178,16 +208,25 @@ export default function LeadTracker() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="rounded-full text-[11px]">
-                      {statusMap[lead.status ?? "novo"] ?? lead.status}
+                    <Badge variant="outline" className={`rounded-full text-[11px] ${statusColors[lead.status ?? "novo"] ?? ""}`}>
+                      {statusOptions.find(s => s.value === lead.status)?.label ?? lead.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-sm">
-                    R$ {(lead.valor_recuperado ?? 0).toLocaleString("pt-BR")}
+                  <TableCell className="text-sm font-medium text-primary">
+                    R$ {(lead.valor_recuperado ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground hidden md:table-cell">-</TableCell>
-                  <TableCell className="text-sm text-muted-foreground text-right">
+                  <TableCell className="text-sm text-muted-foreground hidden md:table-cell">
                     {lead.data_contato ? new Date(lead.data_contato).toLocaleDateString("pt-BR") : "-"}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(lead)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteId(lead.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -196,65 +235,45 @@ export default function LeadTracker() {
         </Table>
       </motion.div>
 
-      {/* Demo conversation modal */}
-      <AnimatePresence>
-        {selectedDemoLead && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4"
-            onClick={() => setSelectedDemoLead(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="glass-card rounded-2xl w-full max-w-lg max-h-[80vh] flex flex-col"
-            >
-              <div className="flex items-center justify-between p-5 border-b border-border/50">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-primary/15 flex items-center justify-center text-sm font-semibold text-primary">
-                    {selectedDemoLead.name.split(" ").map(n => n[0]).join("")}
-                  </div>
-                  <div>
-                    <p className="font-medium">{selectedDemoLead.name}</p>
-                    <p className="text-xs text-muted-foreground">{selectedDemoLead.phone}</p>
-                  </div>
-                </div>
-                <button onClick={() => setSelectedDemoLead(null)} className="h-8 w-8 rounded-lg hover:bg-accent flex items-center justify-center transition-colors">
-                  <X className="h-4 w-4 text-muted-foreground" />
-                </button>
-              </div>
+      {/* Create/Edit Modal */}
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingLead ? "Editar Lead" : "Adicionar Lead"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Input placeholder="Nome" value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} className="rounded-xl" />
+            <Input placeholder="Telefone" value={form.telefone} onChange={e => setForm({ ...form, telefone: e.target.value })} className="rounded-xl" />
+            <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>
+              <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {statusOptions.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Input type="number" placeholder="Valor recuperado (R$)" value={form.valor_recuperado || ""} onChange={e => setForm({ ...form, valor_recuperado: parseFloat(e.target.value) || 0 })} className="rounded-xl" />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" className="rounded-xl" onClick={() => setShowModal(false)}>Cancelar</Button>
+            <Button className="neon-cta rounded-xl" onClick={handleSave} disabled={saving}>
+              {saving ? "Salvando..." : editingLead ? "Salvar" : "Cadastrar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-              <div className="flex-1 overflow-auto p-5 space-y-3">
-                {selectedDemoLead.conversation.map((msg, i) => (
-                  <div key={i} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : ""}`}>
-                    {msg.role === "assistant" && (
-                      <div className="h-7 w-7 rounded-full bg-primary/15 flex items-center justify-center shrink-0 mt-0.5">
-                        <Bot className="h-3.5 w-3.5 text-primary" />
-                      </div>
-                    )}
-                    <div className={`max-w-[80%] px-3.5 py-2.5 rounded-2xl text-sm ${
-                      msg.role === "user"
-                        ? "bg-primary text-primary-foreground rounded-br-md"
-                        : "bg-accent rounded-bl-md"
-                    }`}>
-                      {msg.text}
-                    </div>
-                    {msg.role === "user" && (
-                      <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center shrink-0 mt-0.5">
-                        <User className="h-3.5 w-3.5 text-muted-foreground" />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Delete confirmation */}
+      <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Confirmar exclusão</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">Tem certeza que deseja excluir este lead? Esta ação não pode ser desfeita.</p>
+          <DialogFooter>
+            <Button variant="outline" className="rounded-xl" onClick={() => setDeleteId(null)}>Cancelar</Button>
+            <Button variant="destructive" className="rounded-xl" onClick={handleDelete}>Excluir</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
