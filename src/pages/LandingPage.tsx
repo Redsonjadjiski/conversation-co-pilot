@@ -53,24 +53,34 @@ const features = [
 
 const plans = [
   {
-    name: "IA Starter",
-    price: "R$ 277",
+    name: "Básico",
+    price: "R$ 79,90",
     period: "/mês",
-    detail: "1 Número conectado • 5 Milhões de Tokens de IA",
+    detail: "1 Número • 1M Tokens • 3.000 Webhooks",
     afterNote: null,
-    note: "Ideal para começar a automatizar",
+    note: "Ideal para começar",
     noteStyle: "warning" as const,
     popular: false,
   },
   {
-    name: "IA Pro",
-    price: "R$ 357",
+    name: "Profissional",
+    price: "R$ 149,90",
     period: "/mês",
-    detail: "1+ Números conectados • 10 Milhões de Tokens de IA",
+    detail: "Múltiplos Números • 5M Tokens • 10.000 Webhooks",
     afterNote: null,
-    note: "Mais tokens, mais vendas, mais resultado",
+    note: "Mais popular",
     noteStyle: "success" as const,
     popular: true,
+  },
+  {
+    name: "Avançado",
+    price: "R$ 249,90",
+    period: "/mês",
+    detail: "Ilimitado • 10M Tokens • 20.000 Webhooks",
+    afterNote: null,
+    note: "Para empresas em escala",
+    noteStyle: "success" as const,
+    popular: false,
   },
 ];
 
@@ -337,7 +347,7 @@ export default function LandingPage() {
             </motion.p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-3 gap-6">
             {plans.map((plan, i) => (
               <motion.div
                 key={plan.name}

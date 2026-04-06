@@ -1,244 +1,169 @@
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Kanban, GripVertical, Phone, Plus, MoreHorizontal, Trash2, X } from "lucide-react";
+import { Kanban, GripVertical, Phone, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { SubscriptionLock } from "@/components/SubscriptionLock";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
-interface Card {
+interface Lead {
   id: string;
-  name: string;
-  phone: string;
-  value: string;
-  tag: string;
+  nome: string | null;
+  telefone: string | null;
+  status: string | null;
+  valor_recuperado: number | null;
 }
 
-interface Column {
-  id: string;
-  title: string;
-  color: string;
-  cards: Card[];
-}
-
-const initialColumns: Column[] = [
-  {
-    id: "leads",
-    title: "Leads",
-    color: "hsl(var(--cold))",
-    cards: [
-      { id: "1", name: "Ana Costa", phone: "(11) 98765-4321", value: "R$ 497", tag: "WhatsApp" },
-      { id: "2", name: "Carlos Mendes", phone: "(21) 91234-5678", value: "R$ 149", tag: "Site" },
-      { id: "3", name: "Bruna Lima", phone: "(31) 99876-5432", value: "R$ 297", tag: "Instagram" },
-    ],
-  },
-  {
-    id: "prospects",
-    title: "Prospectos",
-    color: "hsl(var(--warning))",
-    cards: [
-      { id: "4", name: "Pedro Santos", phone: "(41) 98765-1234", value: "R$ 997", tag: "Indicação" },
-      { id: "5", name: "Julia Ferreira", phone: "(51) 91234-8765", value: "R$ 497", tag: "WhatsApp" },
-    ],
-  },
-  {
-    id: "negotiation",
-    title: "Negociação",
-    color: "hsl(var(--warm))",
-    cards: [
-      { id: "6", name: "Roberto Alves", phone: "(61) 98888-7777", value: "R$ 1.497", tag: "Empresa" },
-    ],
-  },
-  {
-    id: "clients",
-    title: "Clientes",
-    color: "hsl(var(--success))",
-    cards: [
-      { id: "7", name: "Marina Souza", phone: "(71) 97777-6666", value: "R$ 2.997", tag: "Premium" },
-      { id: "8", name: "Lucas Oliveira", phone: "(81) 96666-5555", value: "R$ 497", tag: "Mensal" },
-    ],
-  },
+const columns = [
+  { id: "novo", title: "Novo", color: "hsl(var(--cold))" },
+  { id: "em_atendimento", title: "Em Atendimento", color: "hsl(var(--warning))" },
+  { id: "convertido", title: "Convertido", color: "hsl(var(--success))" },
+  { id: "perdido", title: "Perdido", color: "hsl(var(--destructive))" },
 ];
 
 export default function CRM() {
-  const [columns, setColumns] = useState<Column[]>(initialColumns);
-  const [draggedCard, setDraggedCard] = useState<{ cardId: string; fromCol: string } | null>(null);
-  const [showNewLead, setShowNewLead] = useState(false);
-  const [newLead, setNewLead] = useState({ name: "", phone: "", value: "", tag: "WhatsApp" });
+  const { user } = useAuth();
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [draggedCard, setDraggedCard] = useState<{ id: string; from: string } | null>(null);
+  const [showNew, setShowNew] = useState(false);
+  const [newColId, setNewColId] = useState("novo");
+  const [form, setForm] = useState({ nome: "", telefone: "", valor: "" });
+  const [saving, setSaving] = useState(false);
 
-  const handleDragStart = (cardId: string, fromCol: string) => {
-    setDraggedCard({ cardId, fromCol });
+  const fetchLeads = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    const { data } = await supabase.from("leads").select("id, nome, telefone, status, valor_recuperado").eq("user_id", user.id);
+    if (data) setLeads(data);
+    setLoading(false);
+  }, [user]);
+
+  useEffect(() => { fetchLeads(); }, [fetchLeads]);
+
+  const handleDrop = async (toColId: string) => {
+    if (!draggedCard || draggedCard.from === toColId) { setDraggedCard(null); return; }
+    setLeads(prev => prev.map(l => l.id === draggedCard.id ? { ...l, status: toColId } : l));
+    setDraggedCard(null);
+    const { error } = await supabase.from("leads").update({ status: toColId }).eq("id", draggedCard.id);
+    if (error) { toast.error("Erro ao atualizar status"); fetchLeads(); }
+    else toast.success("Status atualizado!");
   };
 
-  const handleDrop = useCallback(
-    (toColId: string) => {
-      if (!draggedCard || draggedCard.fromCol === toColId) {
-        setDraggedCard(null);
-        return;
-      }
-      setColumns((prev) => {
-        const fromCol = prev.find((c) => c.id === draggedCard.fromCol);
-        const card = fromCol?.cards.find((c) => c.id === draggedCard.cardId);
-        if (!card) return prev;
-        return prev.map((col) => {
-          if (col.id === draggedCard.fromCol) {
-            return { ...col, cards: col.cards.filter((c) => c.id !== draggedCard.cardId) };
-          }
-          if (col.id === toColId) {
-            return { ...col, cards: [...col.cards, card] };
-          }
-          return col;
-        });
-      });
-      setDraggedCard(null);
-    },
-    [draggedCard]
-  );
-
-  const deleteCard = (colId: string, cardId: string) => {
-    setColumns((prev) =>
-      prev.map((col) =>
-        col.id === colId ? { ...col, cards: col.cards.filter((c) => c.id !== cardId) } : col
-      )
-    );
-    toast.success("Lead removido com sucesso");
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from("leads").delete().eq("id", id);
+    if (error) toast.error("Erro ao excluir");
+    else { toast.success("Lead removido!"); setLeads(prev => prev.filter(l => l.id !== id)); }
   };
 
-  const addLead = () => {
-    if (!newLead.name.trim() || !newLead.phone.trim()) {
-      toast.error("Preencha nome e telefone");
-      return;
-    }
-    const card: Card = {
-      id: crypto.randomUUID(),
-      name: newLead.name,
-      phone: newLead.phone,
-      value: newLead.value || "R$ 0",
-      tag: newLead.tag || "WhatsApp",
-    };
-    setColumns((prev) =>
-      prev.map((col) => (col.id === "leads" ? { ...col, cards: [...col.cards, card] } : col))
-    );
-    setNewLead({ name: "", phone: "", value: "", tag: "WhatsApp" });
-    setShowNewLead(false);
-    toast.success("Lead cadastrado com sucesso!");
+  const handleAdd = async () => {
+    if (!user || !form.nome.trim()) { toast.error("Preencha o nome"); return; }
+    setSaving(true);
+    const { error } = await supabase.from("leads").insert({
+      user_id: user.id,
+      nome: form.nome,
+      telefone: form.telefone,
+      status: newColId,
+      valor_recuperado: parseFloat(form.valor) || 0,
+    });
+    setSaving(false);
+    if (error) toast.error("Erro ao criar lead");
+    else { toast.success("Lead criado!"); setShowNew(false); setForm({ nome: "", telefone: "", valor: "" }); fetchLeads(); }
   };
+
+  const getColLeads = (colId: string) => leads.filter(l => (l.status ?? "novo") === colId);
 
   return (
-    <SubscriptionLock featureName="CRM Kanban">
-      <div className="max-w-full mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-              <Kanban className="h-6 w-6 text-primary" />
-              CRM
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Gerencie seus leads e clientes no funil de vendas
-            </p>
-          </div>
-          <Button className="neon-cta rounded-xl" onClick={() => setShowNewLead(true)}>
-            <Plus className="h-4 w-4 mr-2" /> Novo Lead
-          </Button>
+    <div className="max-w-full mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+            <Kanban className="h-6 w-6 text-primary" /> CRM
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">Gerencie seus leads no funil de vendas</p>
         </div>
+      </div>
 
-        {/* New Lead Modal */}
-        <Dialog open={showNewLead} onOpenChange={setShowNewLead}>
-          <DialogContent className="rounded-2xl">
-            <DialogHeader>
-              <DialogTitle>Cadastrar Novo Lead</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3 py-2">
-              <Input placeholder="Nome completo" value={newLead.name} onChange={(e) => setNewLead({ ...newLead, name: e.target.value })} className="rounded-xl" />
-              <Input placeholder="Telefone" value={newLead.phone} onChange={(e) => setNewLead({ ...newLead, phone: e.target.value })} className="rounded-xl" />
-              <Input placeholder="Valor (ex: R$ 497)" value={newLead.value} onChange={(e) => setNewLead({ ...newLead, value: e.target.value })} className="rounded-xl" />
-              <Input placeholder="Tag (ex: WhatsApp, Site)" value={newLead.tag} onChange={(e) => setNewLead({ ...newLead, tag: e.target.value })} className="rounded-xl" />
-            </div>
-            <DialogFooter>
-              <Button variant="outline" className="rounded-xl" onClick={() => setShowNewLead(false)}>Cancelar</Button>
-              <Button className="neon-cta rounded-xl" onClick={addLead}>Cadastrar</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
+      {loading ? (
         <div className="flex gap-4 overflow-x-auto pb-4">
-          {columns.map((col, colIdx) => (
-            <motion.div
-              key={col.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: colIdx * 0.1 }}
-              className="min-w-[280px] flex-shrink-0"
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={() => handleDrop(col.id)}
-            >
-              <div className="glass-card rounded-2xl p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="h-3 w-3 rounded-full" style={{ backgroundColor: col.color }} />
-                    <h3 className="font-semibold text-sm">{col.title}</h3>
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">{col.cards.length}</Badge>
+          {columns.map(c => <Skeleton key={c.id} className="min-w-[280px] h-[300px] rounded-2xl" />)}
+        </div>
+      ) : (
+        <div className="flex gap-4 overflow-x-auto pb-4">
+          {columns.map((col, colIdx) => {
+            const colLeads = getColLeads(col.id);
+            return (
+              <motion.div key={col.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: colIdx * 0.1 }}
+                className="min-w-[280px] flex-shrink-0"
+                onDragOver={e => e.preventDefault()}
+                onDrop={() => handleDrop(col.id)}
+              >
+                <div className="glass-card rounded-2xl p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <div className="h-3 w-3 rounded-full" style={{ backgroundColor: col.color }} />
+                      <h3 className="font-semibold text-sm">{col.title}</h3>
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">{colLeads.length}</Badge>
+                    </div>
                   </div>
-                  <Button size="icon" variant="ghost" className="h-7 w-7">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <div className="space-y-3 min-h-[100px]">
-                  {col.cards.map((card) => (
-                    <div
-                      key={card.id}
-                      draggable
-                      onDragStart={() => handleDragStart(card.id, col.id)}
-                      className="bg-background/40 border border-border/40 rounded-xl p-3 cursor-grab active:cursor-grabbing hover:border-primary/30 transition-all group"
-                    >
-                      <div className="flex items-start gap-2">
-                        <GripVertical className="h-4 w-4 text-muted-foreground/40 mt-0.5 shrink-0 group-hover:text-muted-foreground" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{card.name}</p>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                            <Phone className="h-3 w-3" /> {card.phone}
-                          </p>
-                          <div className="flex items-center justify-between mt-2">
-                            <span className="text-xs font-semibold text-primary">{card.value}</span>
-                            <div className="flex items-center gap-1">
-                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">{card.tag}</Badge>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); deleteCard(col.id, card.id); }}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10"
-                                title="Apagar lead"
-                              >
+                  <div className="space-y-3 min-h-[100px]">
+                    {colLeads.length === 0 && (
+                      <p className="text-xs text-muted-foreground text-center py-6">Sem leads</p>
+                    )}
+                    {colLeads.map(lead => (
+                      <div key={lead.id} draggable onDragStart={() => setDraggedCard({ id: lead.id, from: col.id })}
+                        className="bg-background/40 border border-border/40 rounded-xl p-3 cursor-grab active:cursor-grabbing hover:border-primary/30 transition-all group"
+                      >
+                        <div className="flex items-start gap-2">
+                          <GripVertical className="h-4 w-4 text-muted-foreground/40 mt-0.5 shrink-0 group-hover:text-muted-foreground" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{lead.nome ?? "Sem nome"}</p>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                              <Phone className="h-3 w-3" /> {lead.telefone ?? "-"}
+                            </p>
+                            <div className="flex items-center justify-between mt-2">
+                              <span className="text-xs font-semibold text-primary">
+                                R$ {(lead.valor_recuperado ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                              </span>
+                              <button onClick={e => { e.stopPropagation(); handleDelete(lead.id); }}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10">
                                 <Trash2 className="h-3 w-3 text-destructive" />
                               </button>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                  <Button variant="ghost" size="sm" className="w-full mt-3 text-xs text-muted-foreground hover:text-foreground rounded-xl"
+                    onClick={() => { setNewColId(col.id); setShowNew(true); }}>
+                    <Plus className="h-3 w-3 mr-1" /> Adicionar
+                  </Button>
                 </div>
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full mt-3 text-xs text-muted-foreground hover:text-foreground rounded-xl"
-                  onClick={() => setShowNewLead(true)}
-                >
-                  <Plus className="h-3 w-3 mr-1" /> Adicionar
-                </Button>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            );
+          })}
         </div>
-      </div>
-    </SubscriptionLock>
+      )}
+
+      <Dialog open={showNew} onOpenChange={setShowNew}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader><DialogTitle>Novo Lead — {columns.find(c => c.id === newColId)?.title}</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-2">
+            <Input placeholder="Nome" value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} className="rounded-xl" />
+            <Input placeholder="Telefone" value={form.telefone} onChange={e => setForm({ ...form, telefone: e.target.value })} className="rounded-xl" />
+            <Input placeholder="Valor (R$)" value={form.valor} onChange={e => setForm({ ...form, valor: e.target.value })} className="rounded-xl" />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" className="rounded-xl" onClick={() => setShowNew(false)}>Cancelar</Button>
+            <Button className="neon-cta rounded-xl" onClick={handleAdd} disabled={saving}>{saving ? "Salvando..." : "Cadastrar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
