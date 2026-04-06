@@ -74,6 +74,36 @@ export type Database = {
         }
         Relationships: []
       }
+      fluxos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          fluxo_json: Json
+          id: string
+          nome: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          fluxo_json?: Json
+          id?: string
+          nome?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          fluxo_json?: Json
+          id?: string
+          nome?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           data_contato: string | null
