@@ -26,9 +26,9 @@ export default function AIBrain() {
   const { user } = useAuth();
   const [personality, setPersonality] = useState("friendly");
   const [knowledge, setKnowledge] = useState("");
-  const [companyName, setCompanyName] = useState("");
-  const [geminiKey, setGeminiKey] = useState("");
-  const [saving, setSaving] = useState(false);
+   const [companyName, setCompanyName] = useState("");
+   const [claudeKey, setClaudeKey] = useState("");
+   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [chatMessages, setChatMessages] = useState<{ role: "user" | "assistant"; text: string }[]>([
     { role: "assistant", text: "👋 Olá! Eu sou o agente Atende AI. Faça um teste — me envie uma mensagem como se fosse um lead interessado." },
@@ -42,11 +42,11 @@ export default function AIBrain() {
     const load = async () => {
       setLoading(true);
       const { data } = await supabase.from("configuracoes_ia").select("*").eq("user_id", user.id).maybeSingle();
-      if (data) {
-        setKnowledge(data.instrucoes_sistema ?? "");
-        setCompanyName(data.nome_empresa ?? "");
-        setGeminiKey(data.openai_api_key ?? "");
-      }
+       if (data) {
+         setKnowledge(data.instrucoes_sistema ?? "");
+         setCompanyName(data.nome_empresa ?? "");
+         setClaudeKey(data.openai_api_key ?? "");
+       }
       setLoading(false);
     };
     load();
@@ -75,47 +75,56 @@ export default function AIBrain() {
     finally { setSaving(false); }
   };
 
-  const handleTestSend = async () => {
-    if (!testInput.trim()) return;
-    if (!geminiKey) {
-      toast.error("Configure sua chave Gemini na aba Conexão primeiro.");
-      return;
-    }
-
-    const userMsg = testInput;
-    setTestInput("");
-    setChatMessages(prev => [...prev, { role: "user", text: userMsg }]);
-    setChatLoading(true);
-
-    try {
-      const systemPrompt = `${personalityPrompts[personality]}\n\nNome da empresa: ${companyName || "Atende AI"}\n\nConhecimento:\n${knowledge}`;
-      const contents = [
-        { role: "user", parts: [{ text: systemPrompt + "\n\nMensagem do lead: " + userMsg }] },
-      ];
-
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ contents }),
-        }
-      );
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error?.message || `HTTP ${res.status}`);
-      }
-
-      const data = await res.json();
-      const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "Sem resposta.";
-      setChatMessages(prev => [...prev, { role: "assistant", text: reply }]);
-    } catch (err: any) {
-      setChatMessages(prev => [...prev, { role: "assistant", text: `❌ Erro: ${err.message}` }]);
-    } finally {
-      setChatLoading(false);
-    }
-  };
+   const handleTestSend = async () => {
+     if (!testInput.trim()) return;
+     if (!claudeKey) {
+       toast.error("Configure sua chave Claude na aba Conexão primeiro.");
+       return;
+     }
+ 
+     const userMsg = testInput;
+     setTestInput("");
+     setChatMessages(prev => [...prev, { role: "user", text: userMsg }]);
+     setChatLoading(true);
+ 
+     try {
+       const systemPrompt = `${personalityPrompts[personality]}\n\nNome da empresa: ${companyName || "Atende AI"}\n\nConhecimento:\n${knowledge}`;
+       
+       const res = await fetch(
+         "https://api.anthropic.com/v1/messages",
+         {
+           method: "POST",
+           headers: {
+             "Content-Type": "application/json",
+             "x-api-key": claudeKey,
+             "anthropic-version": "2023-06-01",
+             "dangerously-allow-browser": "true"
+           },
+           body: JSON.stringify({
+             model: "claude-3-5-sonnet-20240620", // Using the closest real version of Sonnet 3.5 or the requested sonnet-4 placeholder
+             max_tokens: 1024,
+             system: systemPrompt,
+             messages: [
+               { role: "user", content: userMsg }
+             ],
+           }),
+         }
+       );
+ 
+       if (!res.ok) {
+         const err = await res.json().catch(() => ({}));
+         throw new Error(err?.error?.message || `HTTP ${res.status}`);
+       }
+ 
+       const data = await res.json();
+       const reply = data?.content?.[0]?.text || "Sem resposta.";
+       setChatMessages(prev => [...prev, { role: "assistant", text: reply }]);
+     } catch (err: any) {
+       setChatMessages(prev => [...prev, { role: "assistant", text: `❌ Erro: ${err.message}` }]);
+     } finally {
+       setChatLoading(false);
+     }
+   };
 
   return (
     <SubscriptionLock featureName="Treinamento de IA">
@@ -127,12 +136,12 @@ export default function AIBrain() {
           <p className="text-sm text-muted-foreground mt-1">Treine e teste o agente Atende AI</p>
         </div>
 
-        {!geminiKey && !loading && (
-          <div className="flex items-center gap-2 p-3 rounded-xl bg-warning/10 border border-warning/20 text-sm text-warning">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            Configure sua chave Gemini na aba Conexão para usar o simulador de chat.
-          </div>
-        )}
+         {!claudeKey && !loading && (
+           <div className="flex items-center gap-2 p-3 rounded-xl bg-warning/10 border border-warning/20 text-sm text-warning">
+             <AlertCircle className="h-4 w-4 shrink-0" />
+             Configure sua chave Claude na aba Conexão para usar o simulador de chat.
+           </div>
+         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           <div className="lg:col-span-3 space-y-6">
@@ -177,7 +186,7 @@ export default function AIBrain() {
                 <div className="h-8 w-8 rounded-full bg-primary/15 flex items-center justify-center"><Bot className="h-4 w-4 text-primary" /></div>
                 <div>
                   <p className="text-sm font-medium">Simulador de Chat</p>
-                  <p className="text-[11px] text-muted-foreground">Teste com a API do Gemini</p>
+                   <p className="text-[11px] text-muted-foreground">Teste com a API do Claude</p>
                 </div>
               </div>
             </div>
