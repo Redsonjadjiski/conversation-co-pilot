@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Brain, Send, Bot, User, Sparkles, Loader2, AlertCircle } from "lucide-react";
+import { Brain, Send, Bot, User, Sparkles, Loader2, AlertCircle, Cpu } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,8 @@ export default function AIBrain() {
   const [personality, setPersonality] = useState("friendly");
   const [knowledge, setKnowledge] = useState("");
    const [companyName, setCompanyName] = useState("");
-   const [claudeKey, setClaudeKey] = useState("");
+   const [aiProvider, setAiProvider] = useState("claude");
+   const [aiKey, setAiKey] = useState("");
    const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [chatMessages, setChatMessages] = useState<{ role: "user" | "assistant"; text: string }[]>([
@@ -45,7 +46,9 @@ export default function AIBrain() {
        if (data) {
          setKnowledge(data.instrucoes_sistema ?? "");
          setCompanyName(data.nome_empresa ?? "");
-         setClaudeKey(data.openai_api_key ?? "");
+         setAiKey(data.openai_api_key ?? "");
+         // Fallback para 'claude' se provider_ia não existir no banco (simulamos via app por enquanto)
+         setAiProvider((data as any).provider_ia || "claude");
        }
       setLoading(false);
     };
@@ -76,11 +79,11 @@ export default function AIBrain() {
   };
 
    const handleTestSend = async () => {
-     if (!testInput.trim()) return;
-     if (!claudeKey) {
-       toast.error("Configure sua chave Claude na aba Conexão primeiro.");
-       return;
-     }
+    if (!testInput.trim()) return;
+    if (!aiKey) {
+      toast.error(`Configure sua chave ${aiProvider === 'claude' ? 'Claude' : 'Gemini'} na aba Conexão primeiro.`);
+      return;
+    }
  
      const userMsg = testInput;
      setTestInput("");
@@ -90,13 +93,13 @@ export default function AIBrain() {
      try {
        const systemPrompt = `${personalityPrompts[personality]}\n\nNome da empresa: ${companyName || "Atende AI"}\n\nConhecimento:\n${knowledge}`;
        
-       const res = await fetch(
-         "https://api.anthropic.com/v1/messages",
-         {
+       let res;
+       if (aiProvider === "claude") {
+         res = await fetch("https://api.anthropic.com/v1/messages", {
            method: "POST",
            headers: {
              "Content-Type": "application/json",
-             "x-api-key": claudeKey,
+             "x-api-key": aiKey,
              "anthropic-version": "2023-06-01",
              "dangerously-allow-browser": "true"
            },
@@ -104,12 +107,19 @@ export default function AIBrain() {
              model: "claude-sonnet-4-20250514",
              max_tokens: 1024,
              system: systemPrompt,
-             messages: [
-               { role: "user", content: userMsg }
-             ],
+             messages: [{ role: "user", content: userMsg }],
            }),
-         }
-       );
+         });
+       } else {
+         // Simulação/Placeholder para Gemini (o usuário pediu suporte futuro)
+         res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${aiKey}`, {
+           method: "POST",
+           headers: { "Content-Type": "application/json" },
+           body: JSON.stringify({
+             contents: [{ role: "user", parts: [{ text: `${systemPrompt}\n\nUsuário: ${userMsg}` }] }],
+           }),
+         });
+       }
  
        if (!res.ok) {
          const err = await res.json().catch(() => ({}));
@@ -117,7 +127,9 @@ export default function AIBrain() {
        }
  
        const data = await res.json();
-       const reply = data?.content?.[0]?.text || "Sem resposta.";
+       const reply = aiProvider === "claude" 
+         ? (data?.content?.[0]?.text || "Sem resposta.")
+         : (data?.candidates?.[0]?.content?.parts?.[0]?.text || "Sem resposta do Gemini.");
        setChatMessages(prev => [...prev, { role: "assistant", text: reply }]);
      } catch (err: any) {
        setChatMessages(prev => [...prev, { role: "assistant", text: `❌ Erro: ${err.message}` }]);
@@ -136,12 +148,29 @@ export default function AIBrain() {
           <p className="text-sm text-muted-foreground mt-1">Treine e teste o agente Atende AI</p>
         </div>
 
-         {!claudeKey && !loading && (
-           <div className="flex items-center gap-2 p-3 rounded-xl bg-warning/10 border border-warning/20 text-sm text-warning">
-             <AlertCircle className="h-4 w-4 shrink-0" />
-             Configure sua chave Claude na aba Conexão para usar o simulador de chat.
+         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+           {!aiKey && !loading && (
+             <div className="flex items-center gap-2 p-3 rounded-xl bg-warning/10 border border-warning/20 text-sm text-warning">
+               <AlertCircle className="h-4 w-4 shrink-0" />
+               Configure sua chave {aiProvider === 'claude' ? 'Claude' : 'Gemini'} na aba Conexão para usar o simulador de chat.
+             </div>
+           )}
+           
+           <div className="flex items-center gap-2 p-1 bg-accent/50 rounded-xl border border-border/50 w-fit self-end">
+             <button 
+               onClick={() => setAiProvider("claude")}
+               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${aiProvider === 'claude' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+             >
+               Claude (Anthropic)
+             </button>
+             <button 
+               onClick={() => setAiProvider("gemini")}
+               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${aiProvider === 'gemini' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+             >
+               Gemini (Google)
+             </button>
            </div>
-         )}
+         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           <div className="lg:col-span-3 space-y-6">
@@ -186,7 +215,7 @@ export default function AIBrain() {
                 <div className="h-8 w-8 rounded-full bg-primary/15 flex items-center justify-center"><Bot className="h-4 w-4 text-primary" /></div>
                 <div>
                   <p className="text-sm font-medium">Simulador de Chat</p>
-                   <p className="text-[11px] text-muted-foreground">Teste com a API do Claude</p>
+                   <p className="text-[11px] text-muted-foreground">Teste com a API do {aiProvider === 'claude' ? 'Claude' : 'Gemini'}</p>
                 </div>
               </div>
             </div>
