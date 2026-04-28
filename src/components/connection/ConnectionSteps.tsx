@@ -142,7 +142,7 @@ export default function ConnectionSteps({ onLog, onInstanceCreated }: Connection
   }, [user]);
 
   const isStep1Valid = fields.aiProvider === "claude" 
-    ? fields.aiKey.startsWith("sk-ant-") && fields.aiKey.length >= 20
+    ? /^sk-ant-(api\d+-)?.+/.test(fields.aiKey) && fields.aiKey.length >= 20
     : fields.aiKey.length >= 10;
   const isStep2Valid = fields.training.trim().length >= 50;
   const isStep3Valid = fields.webhookUrl.startsWith("http") && fields.webhookUrl.length >= 10;
