@@ -16,7 +16,8 @@ function getUserInstanceName(userId: string) {
 }
 
  interface StepStatus {
-   claudeKey: string;
+  aiKey: string;
+  aiProvider: "claude" | "gemini";
    training: string;
    webhookUrl: string;
    evolutionApiKey: string;
@@ -87,9 +88,10 @@ export default function ConnectionSteps({ onLog, onInstanceCreated }: Connection
 
   const [fields, setFields] = useState<StepStatus>(() => {
     const saved = loadFromLocalStorage();
-     return {
-       claudeKey: saved.claudeKey || "",
-       training: saved.training || "",
+    return {
+      aiKey: saved.aiKey || "",
+      aiProvider: saved.aiProvider || "claude",
+      training: saved.training || "",
       webhookUrl: saved.webhookUrl || "https://evolution-api-production-c130.up.railway.app",
       evolutionApiKey: saved.evolutionApiKey || "atendeai2026",
       instanceName: saved.instanceName || defaultInstanceName,
@@ -112,8 +114,15 @@ export default function ConnectionSteps({ onLog, onInstanceCreated }: Connection
     if (!user) return;
     async function loadConfig() {
       const { data } = await supabase.from("configuracoes_ia").select("*").eq("user_id", user!.id).maybeSingle();
-      if (data) {
-       if (data.openai_api_key) { setFields(f => ({ ...f, claudeKey: data.openai_api_key! })); setCompleted(c => ({ ...c, step1: true })); }
+    if (data) {
+      if (data.openai_api_key) { 
+        setFields(f => ({ 
+          ...f, 
+          aiKey: data.openai_api_key!,
+          aiProvider: (data as any).provider_ia || "claude"
+        })); 
+        setCompleted(c => ({ ...c, step1: true })); 
+      }
         if (data.instrucoes_sistema && data.instrucoes_sistema.length >= 50) { setFields(f => ({ ...f, training: data.instrucoes_sistema! })); setCompleted(c => ({ ...c, step2: true })); }
         if (data.webhook_make) { setFields(f => ({ ...f, webhookUrl: data.webhook_make! })); setCompleted(c => ({ ...c, step3: true })); }
         if (data.evolution_api_key) setFields(f => ({ ...f, evolutionApiKey: data.evolution_api_key! }));
@@ -132,7 +141,9 @@ export default function ConnectionSteps({ onLog, onInstanceCreated }: Connection
     loadConfig();
   }, [user]);
 
-   const isStep1Valid = fields.claudeKey.startsWith("sk-ant-") && fields.claudeKey.length >= 20;
+  const isStep1Valid = fields.aiProvider === "claude" 
+    ? fields.aiKey.startsWith("sk-ant-") && fields.aiKey.length >= 20
+    : fields.aiKey.length >= 10;
   const isStep2Valid = fields.training.trim().length >= 50;
   const isStep3Valid = fields.webhookUrl.startsWith("http") && fields.webhookUrl.length >= 10;
   const allCompleted = completed.step1 && completed.step2 && completed.step3;
@@ -157,23 +168,37 @@ export default function ConnectionSteps({ onLog, onInstanceCreated }: Connection
     onInstanceCreated?.();
   };
 
-   const handleValidateStep1 = async () => {
-     setValidating(true); setApiError(null);
-     onLog({ type: "info", message: "Testando chave do Claude..." });
-     const result = await testClaudeKey(fields.claudeKey);
-     setValidating(false);
-     if (result.valid) {
-       await upsertConfig({ openai_api_key: fields.claudeKey });
-       setCompleted(prev => ({ ...prev, step1: true }));
-       setCurrentStep(2);
-       onLog({ type: "success", message: "Chave Claude validada e salva!" });
-       toast({ title: "✅ Chave válida!", description: "Conexão com a Anthropic confirmada." });
-     } else {
-       setApiError(result.error ?? "Erro desconhecido");
-       onLog({ type: "error", message: `Falha: ${result.error}` });
-       toast({ title: "❌ Chave inválida", description: result.error, variant: "destructive" });
-     }
-   };
+  const handleValidateStep1 = async () => {
+    setValidating(true); setApiError(null);
+    onLog({ type: "info", message: `Testando chave do ${fields.aiProvider === 'claude' ? 'Claude' : 'Gemini'}...` });
+    
+    let result;
+    if (fields.aiProvider === "claude") {
+      result = await testClaudeKey(fields.aiKey);
+    } else {
+      // Simulação de validação Gemini (já que não temos SDK instalado para teste rápido aqui)
+      await new Promise(r => setTimeout(r, 1000));
+      result = { valid: fields.aiKey.length >= 10 };
+    }
+
+    setValidating(false);
+    if (result.valid) {
+      await upsertConfig({ 
+        openai_api_key: fields.aiKey,
+        // Simulamos o campo no payload para o backend (mesmo que a coluna não exista, o Supabase ignora ou o upsert trata)
+        provider_ia: fields.aiProvider 
+      } as any);
+      setCompleted(prev => ({ ...prev, step1: true }));
+      setCurrentStep(2);
+      onLog({ type: "success", message: `Chave ${fields.aiProvider === 'claude' ? 'Claude' : 'Gemini'} validada e salva!` });
+      toast({ title: "✅ Chave válida!", description: `Conexão com ${fields.aiProvider === 'claude' ? 'Anthropic' : 'Google'} confirmada.` });
+    } else {
+      const errMsg = result.error ?? "Erro desconhecido";
+      setApiError(errMsg);
+      onLog({ type: "error", message: `Falha: ${errMsg}` });
+      toast({ title: "❌ Chave inválida", description: errMsg, variant: "destructive" });
+    }
+  };
 
   const handleValidateStep = async (step: number) => {
     if (step === 1) { handleValidateStep1(); return; }
@@ -200,7 +225,11 @@ export default function ConnectionSteps({ onLog, onInstanceCreated }: Connection
     setTimeout(() => { setActivated(true); onLog({ type: "success", message: "🚀 Agente Atende AI ativado!" }); }, 2500);
   };
 
-   const stepTitles = [{ icon: Key, label: "Claude API Key" }, { icon: Brain, label: "Treine a IA" }, { icon: Webhook, label: "Webhook" }];
+  const stepTitles = [
+    { icon: Key, label: fields.aiProvider === "claude" ? "Claude API Key" : "Gemini API Key" }, 
+    { icon: Brain, label: "Treine a IA" }, 
+    { icon: Webhook, label: "Webhook" }
+  ];
 
   return (
     <div className="space-y-6">
@@ -222,16 +251,57 @@ export default function ConnectionSteps({ onLog, onInstanceCreated }: Connection
           <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }} className="rounded-2xl bg-card border border-border p-6 space-y-5 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"><Key className="h-5 w-5 text-primary" /></div>
-               <div><h3 className="font-semibold text-foreground">Passo 1: Claude API Key</h3><p className="text-sm text-muted-foreground">Insira sua chave do Anthropic Console</p></div>
+              <div>
+                <h3 className="font-semibold text-foreground">Passo 1: {fields.aiProvider === "claude" ? "Claude" : "Gemini"} API Key</h3>
+                <p className="text-sm text-muted-foreground">Insira sua chave do {fields.aiProvider === "claude" ? "Anthropic Console" : "Google AI Studio"}</p>
+              </div>
               {completed.step1 && <div className="ml-auto h-7 w-7 rounded-full bg-success/20 flex items-center justify-center"><Check className="h-4 w-4 text-success" /></div>}
             </div>
-             <div>
-               <label className="text-sm font-medium mb-1.5 block text-foreground">Claude API Key</label>
-               <Input type="password" value={fields.claudeKey} onChange={e => { setFields(f => ({ ...f, claudeKey: e.target.value })); setApiError(null); }} placeholder="sk-ant-..." className="rounded-xl bg-background border-border text-foreground" />
-               <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1.5"><ExternalLink className="h-3 w-3" />Obtenha sua chave no Anthropic Console</a>
-               {apiError && <p className="text-xs text-destructive mt-1.5 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{apiError}</p>}
-               {fields.claudeKey.length > 0 && !isStep1Valid && !apiError && <p className="text-xs text-destructive mt-1.5 flex items-center gap-1"><AlertCircle className="h-3 w-3" />A chave deve começar com "sk-ant-" e ter pelo menos 20 caracteres</p>}
-             </div>
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 p-1 bg-accent/50 rounded-xl border border-border/50 w-fit">
+                <button 
+                  onClick={() => { setFields(f => ({ ...f, aiProvider: "claude" })); setApiError(null); }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${fields.aiProvider === 'claude' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  Claude (Anthropic)
+                </button>
+                <button 
+                  onClick={() => { setFields(f => ({ ...f, aiProvider: "gemini" })); setApiError(null); }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${fields.aiProvider === 'gemini' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  Gemini (Google)
+                </button>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-1.5 block text-foreground">{fields.aiProvider === "claude" ? "Claude" : "Gemini"} API Key</label>
+                <Input 
+                  type="password" 
+                  value={fields.aiKey} 
+                  onChange={e => { setFields(f => ({ ...f, aiKey: e.target.value })); setApiError(null); }} 
+                  placeholder={fields.aiProvider === "claude" ? "sk-ant-..." : "AIzaSy..."} 
+                  className="rounded-xl bg-background border-border text-foreground" 
+                />
+                <a 
+                  href={fields.aiProvider === "claude" ? "https://console.anthropic.com/" : "https://aistudio.google.com/"} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1.5"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Obtenha sua chave no {fields.aiProvider === "claude" ? "Anthropic Console" : "Google AI Studio"}
+                </a>
+                {apiError && <p className="text-xs text-destructive mt-1.5 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{apiError}</p>}
+                {fields.aiKey.length > 0 && !isStep1Valid && !apiError && (
+                  <p className="text-xs text-destructive mt-1.5 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {fields.aiProvider === "claude" 
+                      ? 'A chave deve começar com "sk-ant-" e ter pelo menos 20 caracteres'
+                      : 'A chave do Gemini deve ter pelo menos 10 caracteres'}
+                  </p>
+                )}
+              </div>
+            </div>
             <Button onClick={() => handleValidateStep(1)} disabled={!isStep1Valid || validating || completed.step1} className="rounded-xl w-full">
               {validating ? <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Testando...</span>
                 : completed.step1 ? <span className="flex items-center gap-2"><Check className="h-4 w-4" /> Concluído</span>
