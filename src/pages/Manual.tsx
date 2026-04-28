@@ -20,7 +20,7 @@ Para começar a usar a plataforma, siga estes passos:
 1. **Crie sua conta** em /auth com e-mail e senha
 2. **Escolha um plano** na aba Assinatura (Básico, Profissional ou Avançado)
 3. **Configure a conexão** na aba Configuração:
-   - Insira sua chave Gemini (Google AI Studio)
+   - Insira sua chave Claude (Anthropic Console)
    - Treine a IA com informações do seu negócio
    - Configure o webhook da Evolution API
 4. **Conecte seu WhatsApp** escaneando o QR Code
@@ -36,7 +36,7 @@ Para começar a usar a plataforma, siga estes passos:
 
 **Passo a passo:**
 1. Acesse **Configuração** no menu lateral
-2. Complete os 3 passos (Gemini Key, Treinamento, Webhook)
+2. Complete os 3 passos (Claude Key, Treinamento, Webhook)
 3. Clique em **"Ativar Agente no WhatsApp"**
 4. Escaneie o **QR Code** com seu WhatsApp
 5. Aguarde a confirmação de conexão
@@ -119,7 +119,7 @@ Webhooks contam cada mensagem recebida do WhatsApp.
     title: "7. FAQ",
     desc: "Perguntas frequentes.",
     content: `**Minha IA não está respondendo:**
-Verifique se a chave Gemini está válida e se o webhook está online na aba Conexão.
+Verifique se a chave Claude está válida e se o webhook está online na aba Conexão.
 
 **Os leads não aparecem:**
 Confirme que o webhook está enviando dados com o user_id correto.
