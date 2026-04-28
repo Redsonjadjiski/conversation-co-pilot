@@ -101,7 +101,7 @@ export default function AIBrain() {
              "dangerously-allow-browser": "true"
            },
            body: JSON.stringify({
-             model: "claude-3-5-sonnet-20240620", // Using the closest real version of Sonnet 3.5 or the requested sonnet-4 placeholder
+             model: "claude-sonnet-4-20250514",
              max_tokens: 1024,
              system: systemPrompt,
              messages: [
