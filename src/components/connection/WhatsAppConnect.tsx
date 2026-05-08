@@ -15,8 +15,8 @@ interface WhatsAppConnectProps {
 type ConnectionStatus = "disconnected" | "connecting" | "qr_ready" | "connected";
 
 const PROXY_URL = "/.netlify/functions/evolution-proxy";
-const DEFAULT_SERVER = "https://evolution-api-production-c100.up.railway.app";
-const DEFAULT_API_KEY = "atendeai2026";
+const DEFAULT_SERVER = "https://evolution-api-production-c130.up.railway.app";
+const DEFAULT_API_KEY = "redson2026secure";
 
 export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceName, onLog, autoConnect }: WhatsAppConnectProps) {
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
@@ -28,7 +28,7 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
 
   const baseUrl = (serverUrl || DEFAULT_SERVER).replace(/\/+$/, "");
   const apiKey = evolutionApiKey || DEFAULT_API_KEY;
-  const instName = instanceName || "atendeai";
+  const instName = instanceName || "atendeal";
 
   const stopPolling = useCallback(() => {
     if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
@@ -56,7 +56,7 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
   useEffect(() => () => stopPolling(), [stopPolling]);
 
   const handleConnect = useCallback(async () => {
-    const finalKey = "atendeai2026";
+    const finalKey = apiKey;
     setLoading(true); setQrCode(null); setStatus("connecting");
 
     try {
