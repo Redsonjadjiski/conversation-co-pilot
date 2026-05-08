@@ -92,7 +92,7 @@ export default function ConnectionSteps({ onLog, onInstanceCreated }: Connection
       aiKey: saved.aiKey || "",
       aiProvider: saved.aiProvider || "claude",
       training: saved.training || "",
-      webhookUrl: saved.webhookUrl || "https://evolution-api-production-c130.up.railway.app",
+      webhookUrl: saved.webhookUrl || "https://evolution-api-production-c100.up.railway.app",
       evolutionApiKey: saved.evolutionApiKey || "atendeai2026",
       instanceName: saved.instanceName || defaultInstanceName,
     };
