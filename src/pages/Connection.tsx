@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import type { LogEntry } from "@/components/connection/ConnectionSteps";
 
-const DEFAULT_SERVER = "https://evolution-api-production-c130.up.railway.app";
+const PROXY_URL = "/.netlify/functions/evolution-proxy";
 const DEFAULT_API_KEY = "atendeai2026";
 
 function getUserInstanceName(userId: string) {
@@ -79,8 +79,11 @@ export default function Connection() {
     if (instances.length === 0) return;
     instances.forEach(async inst => {
       try {
-        const baseUrl = inst.server_url.replace(/\/+$/, "");
-        const res = await fetch(`${baseUrl}/instance/connectionState/${inst.instance_name}`, { headers: { apikey: inst.api_key } });
+        const endpoint = `/instance/connectionState/${inst.instance_name}`;
+        const res = await fetch(PROXY_URL, {
+          method: "POST",
+          body: JSON.stringify({ endpoint })
+        });
         if (res.ok) {
           const data = await res.json();
           const state = data?.instance?.state ?? data?.state;
