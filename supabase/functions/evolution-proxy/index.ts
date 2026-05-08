@@ -20,7 +20,8 @@ serve(async (req) => {
       })
     }
 
-    const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY')
+    // Using the key provided by the user
+    const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY') || 'redson2026secure'
     
     const response = await fetch(`https://evolution-api-production-c130.up.railway.app${endpoint}`, {
       method,
