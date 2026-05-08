@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import type { LogEntry } from "@/components/connection/ConnectionSteps";
 
-const PROXY_URL = "/.netlify/functions/evolution-proxy";
 const DEFAULT_SERVER = "https://evolution-api-production-c130.up.railway.app";
 const DEFAULT_API_KEY = "redson2026secure";
 
@@ -78,22 +77,22 @@ export default function Connection() {
   // Check status
   useEffect(() => {
     if (instances.length === 0) return;
-    instances.forEach(async inst => {
-      try {
-        const endpoint = `/instance/connectionState/${inst.instance_name}`;
-        const res = await fetch(PROXY_URL, {
-          method: "POST",
-          body: JSON.stringify({ endpoint })
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const state = data?.instance?.state ?? data?.state;
-          if (state === "open" || state === "connected") {
-            setInstances(prev => prev.map(i => i.id === inst.id ? { ...i, status: "connected" } : i));
+    const checkStatus = async () => {
+      for (const inst of instances) {
+        try {
+          const { data, error } = await supabase.functions.invoke('evolution-proxy', {
+            body: { endpoint: `/instance/connectionState/${inst.instance_name}` }
+          });
+          if (!error) {
+            const state = data?.instance?.state ?? data?.state;
+            if (state === "open" || state === "connected") {
+              setInstances(prev => prev.map(i => i.id === inst.id ? { ...i, status: "connected" } : i));
+            }
           }
-        }
-      } catch {}
-    });
+        } catch {}
+      }
+    };
+    checkStatus();
   }, [instances.length]);
 
   const handleDeleteInstance = async (id: string) => {
