@@ -14,7 +14,7 @@ interface WhatsAppConnectProps {
 
 type ConnectionStatus = "disconnected" | "connecting" | "qr_ready" | "connected";
 
-const DEFAULT_SERVER = "https://evolution-api-production-c130.up.railway.app";
+const PROXY_URL = "/.netlify/functions/evolution-proxy";
 const DEFAULT_API_KEY = "atendeai2026";
 
 export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceName, onLog, autoConnect }: WhatsAppConnectProps) {
@@ -35,7 +35,12 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
 
   const checkConnectionState = useCallback(async () => {
     try {
-      const res = await fetch(`${baseUrl}/instance/connectionState/${instName}`, { headers: { apikey: apiKey } });
+      const res = await fetch(PROXY_URL, {
+        method: "POST",
+        body: JSON.stringify({
+          endpoint: `/instance/connectionState/${instName}`
+        })
+      });
       if (!res.ok) return;
       const data = await res.json();
       const state = data?.instance?.state ?? data?.state;
@@ -50,17 +55,19 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
   useEffect(() => () => stopPolling(), [stopPolling]);
 
   const handleConnect = useCallback(async () => {
-    const finalUrl = baseUrl;
     const finalKey = "atendeai2026";
     setLoading(true); setQrCode(null); setStatus("connecting");
 
     try {
       // Create instance
       onLog({ type: "info", message: `Criando instância "${instName}"...` });
-      const createRes = await fetch(`${finalUrl}/instance/create`, {
+      const createRes = await fetch(PROXY_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json", apikey: finalKey },
-        body: JSON.stringify({ instanceName: instName, token: finalKey, qrcode: true }),
+        body: JSON.stringify({
+          endpoint: "/instance/create",
+          method: "POST",
+          body: { instanceName: instName, token: finalKey, qrcode: true }
+        })
       });
       const createData = await createRes.json().catch(() => null);
       if (createRes.ok || createRes.status === 201) onLog({ type: "success", message: "Instância criada!" });
@@ -73,7 +80,12 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
       for (let attempt = 0; attempt < 3; attempt++) {
         onLog({ type: "info", message: `Buscando QR Code (tentativa ${attempt + 1})...` });
         try {
-          const res = await fetch(`${finalUrl}/instance/connect/${instName}`, { headers: { apikey: finalKey } });
+          const res = await fetch(PROXY_URL, {
+            method: "POST",
+            body: JSON.stringify({
+              endpoint: `/instance/connect/${instName}`
+            })
+          });
           if (res.status === 404 && attempt < 2) { await new Promise(r => setTimeout(r, 3000)); continue; }
           if (!res.ok) { const err = await res.json().catch(() => null); throw new Error(err?.message || `HTTP ${res.status}`); }
           const data = await res.json();
@@ -98,7 +110,13 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
   const handleDisconnect = async () => {
     setDisconnecting(true); stopPolling();
     try {
-      await fetch(`${baseUrl}/instance/logout/${instName}`, { method: "DELETE", headers: { apikey: apiKey } });
+      await fetch(PROXY_URL, {
+        method: "POST",
+        body: JSON.stringify({
+          endpoint: `/instance/logout/${instName}`,
+          method: "DELETE"
+        })
+      });
       setStatus("disconnected"); setQrCode(null);
       onLog({ type: "success", message: "WhatsApp desconectado." });
     } catch { onLog({ type: "error", message: "Falha ao desconectar." }); }
