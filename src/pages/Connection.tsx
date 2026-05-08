@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { LogEntry } from "@/components/connection/ConnectionSteps";
 
 const PROXY_URL = "/.netlify/functions/evolution-proxy";
+const DEFAULT_SERVER = "https://evolution-api-production-c100.up.railway.app";
 const DEFAULT_API_KEY = "atendeai2026";
 
 function getUserInstanceName(userId: string) {
