@@ -15,6 +15,7 @@ interface WhatsAppConnectProps {
 type ConnectionStatus = "disconnected" | "connecting" | "qr_ready" | "connected";
 
 const PROXY_URL = "/.netlify/functions/evolution-proxy";
+const DEFAULT_SERVER = "https://evolution-api-production-c100.up.railway.app";
 const DEFAULT_API_KEY = "atendeai2026";
 
 export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceName, onLog, autoConnect }: WhatsAppConnectProps) {
