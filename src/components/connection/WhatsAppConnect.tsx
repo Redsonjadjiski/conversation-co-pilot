@@ -14,9 +14,10 @@ interface WhatsAppConnectProps {
 
 type ConnectionStatus = "disconnected" | "connecting" | "qr_ready" | "connected";
 
-const PROXY_URL = "/.netlify/functions/evolution-proxy";
-const DEFAULT_SERVER = "https://evolution-api-production-c100.up.railway.app";
-const DEFAULT_API_KEY = "atendeai2026";
+import { supabase } from "@/integrations/supabase/client";
+const PROXY_URL = "https://gfqwoqrcjxusedstikuo.supabase.co/functions/v1/evolution-proxy";
+const DEFAULT_SERVER = "https://evolution-api-production-c130.up.railway.app";
+const DEFAULT_API_KEY = "redson2026secure";
 
 export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceName, onLog, autoConnect }: WhatsAppConnectProps) {
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
@@ -28,7 +29,7 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
 
   const baseUrl = (serverUrl || DEFAULT_SERVER).replace(/\/+$/, "");
   const apiKey = evolutionApiKey || DEFAULT_API_KEY;
-  const instName = instanceName || "atendeai";
+  const instName = instanceName || "atendeal";
 
   const stopPolling = useCallback(() => {
     if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
@@ -36,15 +37,11 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
 
   const checkConnectionState = useCallback(async () => {
     try {
-      const res = await fetch(PROXY_URL, {
-        method: "POST",
-        body: JSON.stringify({
-          endpoint: `/instance/connectionState/${instName}`
-        })
+      const { data: stateData, error: stateError } = await supabase.functions.invoke('evolution-proxy', {
+        body: { endpoint: `/instance/connectionState/${instName}` }
       });
-      if (!res.ok) return;
-      const data = await res.json();
-      const state = data?.instance?.state ?? data?.state;
+      if (stateError) return;
+      const state = stateData?.instance?.state ?? stateData?.state;
       if (state === "open" || state === "connected") {
         setStatus("connected"); setQrCode(null); stopPolling();
         onLog({ type: "success", message: "WhatsApp conectado!" });
@@ -56,24 +53,22 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
   useEffect(() => () => stopPolling(), [stopPolling]);
 
   const handleConnect = useCallback(async () => {
-    const finalKey = "atendeai2026";
+    const finalKey = apiKey;
     setLoading(true); setQrCode(null); setStatus("connecting");
 
     try {
       // Create instance
       onLog({ type: "info", message: `Criando instância "${instName}"...` });
-      const createRes = await fetch(PROXY_URL, {
-        method: "POST",
-        body: JSON.stringify({
+      const { data: createData, error: createError } = await supabase.functions.invoke('evolution-proxy', {
+        body: {
           endpoint: "/instance/create",
           method: "POST",
           body: { instanceName: instName, token: finalKey, qrcode: true }
-        })
+        }
       });
-      const createData = await createRes.json().catch(() => null);
-      if (createRes.ok || createRes.status === 201) onLog({ type: "success", message: "Instância criada!" });
-      else if (createRes.status === 403 || createRes.status === 409) onLog({ type: "info", message: "Instância já existe." });
-      else onLog({ type: "warning", message: `Criar instância: ${createData?.message || `HTTP ${createRes.status}`}` });
+      
+      if (!createError) onLog({ type: "success", message: "Instância criada!" });
+      else onLog({ type: "info", message: "Instância verificada." });
 
       await new Promise(r => setTimeout(r, 2500));
 
@@ -81,15 +76,13 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
       for (let attempt = 0; attempt < 3; attempt++) {
         onLog({ type: "info", message: `Buscando QR Code (tentativa ${attempt + 1})...` });
         try {
-          const res = await fetch(PROXY_URL, {
-            method: "POST",
-            body: JSON.stringify({
-              endpoint: `/instance/connect/${instName}`
-            })
+          const { data, error: connectError } = await supabase.functions.invoke('evolution-proxy', {
+            body: { endpoint: `/instance/connect/${instName}` }
           });
-          if (res.status === 404 && attempt < 2) { await new Promise(r => setTimeout(r, 3000)); continue; }
-          if (!res.ok) { const err = await res.json().catch(() => null); throw new Error(err?.message || `HTTP ${res.status}`); }
-          const data = await res.json();
+          
+          if (connectError && attempt < 2) { await new Promise(r => setTimeout(r, 3000)); continue; }
+          if (connectError) throw new Error(connectError.message || "Erro ao conectar");
+
           const base64 = data?.base64 ?? data?.qrcode?.base64 ?? data?.qrcode;
           if (base64) {
             const src = base64.startsWith("data:image") ? base64 : `data:image/png;base64,${base64}`;
@@ -111,12 +104,11 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
   const handleDisconnect = async () => {
     setDisconnecting(true); stopPolling();
     try {
-      await fetch(PROXY_URL, {
-        method: "POST",
-        body: JSON.stringify({
+      await supabase.functions.invoke('evolution-proxy', {
+        body: {
           endpoint: `/instance/logout/${instName}`,
           method: "DELETE"
-        })
+        }
       });
       setStatus("disconnected"); setQrCode(null);
       onLog({ type: "success", message: "WhatsApp desconectado." });

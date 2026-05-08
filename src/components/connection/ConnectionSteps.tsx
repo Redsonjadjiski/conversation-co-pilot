@@ -11,9 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const LS_KEY = "atendeia_connection_fields";
 
-function getUserInstanceName(userId: string) {
-  return `atendeai_${userId.slice(0, 8)}`;
-}
+const getUserInstanceName = (userId: string) => "atendeal";
 
  interface StepStatus {
   aiKey: string;
@@ -92,8 +90,8 @@ export default function ConnectionSteps({ onLog, onInstanceCreated }: Connection
       aiKey: saved.aiKey || "",
       aiProvider: saved.aiProvider || "claude",
       training: saved.training || "",
-      webhookUrl: saved.webhookUrl || "https://evolution-api-production-c100.up.railway.app",
-      evolutionApiKey: saved.evolutionApiKey || "atendeai2026",
+      webhookUrl: saved.webhookUrl || "https://evolution-api-production-c130.up.railway.app",
+      evolutionApiKey: saved.evolutionApiKey || "redson2026secure",
       instanceName: saved.instanceName || defaultInstanceName,
     };
   });
