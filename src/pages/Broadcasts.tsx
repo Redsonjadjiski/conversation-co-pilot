@@ -62,15 +62,14 @@ export default function Broadcasts() {
     for (const lead of selectedLeads) {
       if (!lead.telefone) { errors++; setProgress(p => ({ ...p, current: p.current + 1 })); continue; }
       try {
-        const res = await fetch("/.netlify/functions/evolution-proxy", {
-          method: "POST",
-          body: JSON.stringify({
+        const { error } = await supabase.functions.invoke('evolution-proxy', {
+          body: {
             endpoint: `/message/sendText/${instanceName}`,
             method: "POST",
             body: { number: lead.telefone.replace(/\D/g, ""), text: replaceVars(message, lead) }
-          }),
+          }
         });
-        if (res.ok) sent++;
+        if (!error) sent++;
         else errors++;
       } catch { errors++; }
       setProgress(p => ({ ...p, current: p.current + 1 }));
