@@ -57,17 +57,18 @@ export default function Broadcasts() {
     setProgress({ current: 0, total: selectedLeads.length });
     let sent = 0;
     let errors = 0;
-    const baseUrl = (evo as any).server_url.replace(/\/+$/, "");
     const instanceName = (evo as any).instance_name;
-    const apiKey = (evo as any).api_key;
 
     for (const lead of selectedLeads) {
       if (!lead.telefone) { errors++; setProgress(p => ({ ...p, current: p.current + 1 })); continue; }
       try {
-        const res = await fetch(`${baseUrl}/message/sendText/${instanceName}`, {
+        const res = await fetch("/.netlify/functions/evolution-proxy", {
           method: "POST",
-          headers: { "Content-Type": "application/json", apikey: apiKey },
-          body: JSON.stringify({ number: lead.telefone.replace(/\D/g, ""), text: replaceVars(message, lead) }),
+          body: JSON.stringify({
+            endpoint: `/message/sendText/${instanceName}`,
+            method: "POST",
+            body: { number: lead.telefone.replace(/\D/g, ""), text: replaceVars(message, lead) }
+          }),
         });
         if (res.ok) sent++;
         else errors++;
