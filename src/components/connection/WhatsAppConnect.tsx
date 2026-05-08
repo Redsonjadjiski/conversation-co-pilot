@@ -37,13 +37,11 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
 
   const checkConnectionState = useCallback(async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('evolution-proxy', {
+      const { data: stateData, error: stateError } = await supabase.functions.invoke('evolution-proxy', {
         body: { endpoint: `/instance/connectionState/${instName}` }
       });
-      if (error) return;
-      if (!res.ok) return;
-      const data = await res.json();
-      const state = data?.instance?.state ?? data?.state;
+      if (stateError) return;
+      const state = stateData?.instance?.state ?? stateData?.state;
       if (state === "open" || state === "connected") {
         setStatus("connected"); setQrCode(null); stopPolling();
         onLog({ type: "success", message: "WhatsApp conectado!" });
