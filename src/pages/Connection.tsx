@@ -13,11 +13,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { LogEntry } from "@/components/connection/ConnectionSteps";
 
 const PROXY_URL = "/.netlify/functions/evolution-proxy";
-const DEFAULT_SERVER = "https://evolution-api-production-c100.up.railway.app";
-const DEFAULT_API_KEY = "atendeai2026";
+const DEFAULT_SERVER = "https://evolution-api-production-c130.up.railway.app";
+const DEFAULT_API_KEY = "redson2026secure";
 
 function getUserInstanceName(userId: string) {
-  return `atendeai_${userId.slice(0, 8)}`;
+  return `atendeal`;
 }
 
 interface EvolutionInstance {
