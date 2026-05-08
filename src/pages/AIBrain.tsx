@@ -47,7 +47,6 @@ export default function AIBrain() {
          setKnowledge(data.instrucoes_sistema ?? "");
          setCompanyName(data.nome_empresa ?? "");
          setAiKey(data.openai_api_key ?? "");
-         // Fallback para 'claude' se provider_ia não existir no banco (simulamos via app por enquanto)
          setAiProvider((data as any).provider_ia || "claude");
        }
       setLoading(false);
@@ -85,35 +84,40 @@ export default function AIBrain() {
       return;
     }
  
-    const userMsg = testInput;
-    setTestInput("");
-    setChatMessages(prev => [...prev, { role: "user", text: userMsg }]);
-    setChatLoading(true);
+     const userMsg = testInput;
+     setTestInput("");
+     setChatMessages(prev => [...prev, { role: "user", text: userMsg }]);
+     setChatLoading(true);
  
-    try {
-      const systemPrompt = `${personalityPrompts[personality]}\n\nNome da empresa: ${companyName || "Atende AI"}\n\nConhecimento:\n${knowledge}`;
-      
-      let res;
-      if (aiProvider === "claude") {
-        res = await fetch("/.netlify/functions/evolution-proxy", {
-          method: "POST",
-          body: JSON.stringify({
-            endpoint: "/claude-proxy", // Note: This assumes the proxy also handles Claude, but the instruction only mentioned Evolution API.
-            // However, the instructions said "MODIFIQUE TODAS as chamadas à Evolution API".
-            // Claude is NOT Evolution API. 
-            // Wait, I should only proxy the Evolution API. 
-            // But the instructions say "O frontend não consegue chamar a Evolution API por bloqueio CORS."
-            // Claude also has CORS blocks usually if not for the "dangerously-allow-browser" header which Anthropic SDK uses.
-            // But this code is using raw fetch.
-          })
-        });
-        // RE-EVALUATING: The user only asked for a proxy for Evolution API.
-        // Claude is a separate thing.
-        // I will stick to the plan of proxying Evolution API only unless I see Claude calls to Evolution.
-        // But in this file, the calls are to anthropic.com and googleapis.com.
-        // These are NOT Evolution API.
-        // So I should probably NOT change these unless they are hitting the Evolution API.
-        // I will keep them as is and only change the ones that hit the Evolution API URL.
+     try {
+       const systemPrompt = `${personalityPrompts[personality]}\n\nNome da empresa: ${companyName || "Atende AI"}\n\nConhecimento:\n${knowledge}`;
+       
+       let res;
+       if (aiProvider === "claude") {
+         res = await fetch("https://api.anthropic.com/v1/messages", {
+           method: "POST",
+           headers: {
+             "Content-Type": "application/json",
+             "x-api-key": aiKey,
+             "anthropic-version": "2023-06-01",
+             "dangerously-allow-browser": "true"
+           },
+           body: JSON.stringify({
+             model: "claude-sonnet-4-20250514",
+             max_tokens: 1024,
+             system: systemPrompt,
+             messages: [{ role: "user", content: userMsg }],
+           }),
+         });
+       } else {
+         res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${aiKey}`, {
+           method: "POST",
+           headers: { "Content-Type": "application/json" },
+           body: JSON.stringify({
+             contents: [{ role: "user", parts: [{ text: `${systemPrompt}\n\nUsuário: ${userMsg}` }] }],
+           }),
+         });
+       }
  
        if (!res.ok) {
          const err = await res.json().catch(() => ({}));
@@ -174,7 +178,7 @@ export default function AIBrain() {
               <Input value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="Nome da empresa"
                 className="mb-3 rounded-xl bg-background border-border text-sm" disabled={loading} />
               <Textarea value={knowledge} onChange={e => { if (e.target.value.length <= MAX_CHARS) setKnowledge(e.target.value); }}
-                placeholder="Ex: Nosso produto custa R$97/mês..."
+                placeholder="Ex: Nosso produto custa R7/mês..."
                 className="min-h-[200px] bg-background border-border rounded-xl resize-none text-sm" disabled={loading} maxLength={MAX_CHARS} />
               <div className="flex justify-between items-center mt-3">
                 <span className={`text-xs ${knowledge.length >= MAX_CHARS ? "text-destructive font-medium" : "text-muted-foreground"}`}>
@@ -201,7 +205,6 @@ export default function AIBrain() {
             </motion.div>
           </div>
 
-          {/* Chat simulator */}
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
             className="lg:col-span-2 glass-card rounded-2xl flex flex-col h-[540px]">
             <div className="p-4 border-b border-border/50">
