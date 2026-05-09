@@ -15,9 +15,7 @@ import type { LogEntry } from "@/components/connection/ConnectionSteps";
 const DEFAULT_SERVER = "https://evolution-api-production-c130.up.railway.app";
 const DEFAULT_API_KEY = "redson2026secure";
 
-function getUserInstanceName(userId: string) {
-  return `atendeal`;
-}
+const getUserInstanceName = (userId: string) => "atendeal_novo";
 
 interface EvolutionInstance {
   id: string;
