@@ -111,20 +111,23 @@ export default function ConnectionSteps({ onLog, onInstanceCreated }: Connection
   useEffect(() => {
     if (!user) return;
     async function loadConfig() {
-      const { data } = await supabase.from("configuracoes_ia").select("*").eq("user_id", user!.id).maybeSingle();
-    if (data) {
-      if (data.openai_api_key) { 
-        setFields(f => ({ 
-          ...f, 
-          aiKey: data.openai_api_key!,
-          aiProvider: (data as any).provider_ia || "claude"
-        })); 
-        setCompleted(c => ({ ...c, step1: true })); 
+      const { data } = await supabase.from("ai_configs").select("*").eq("user_id", user!.id).maybeSingle();
+      if (data) {
+        if (data.api_key) {
+          setFields(f => ({
+            ...f,
+            aiKey: data.api_key!,
+            aiProvider: (data.provider as "claude" | "gemini") || "claude"
+          }));
+          setCompleted(c => ({ ...c, step1: true }));
+        }
+        if (data.instructions && data.instructions.length >= 50) {
+          setFields(f => ({ ...f, training: data.instructions! }));
+          setCompleted(c => ({ ...c, step2: true }));
+        }
       }
-        if (data.instrucoes_sistema && data.instrucoes_sistema.length >= 50) { setFields(f => ({ ...f, training: data.instrucoes_sistema! })); setCompleted(c => ({ ...c, step2: true })); }
-        if (data.webhook_make) { setFields(f => ({ ...f, webhookUrl: data.webhook_make! })); setCompleted(c => ({ ...c, step3: true })); }
-        if (data.evolution_api_key) setFields(f => ({ ...f, evolutionApiKey: data.evolution_api_key! }));
-      }
+      
+      // Check for legacy data or other configs if needed, but primarily use ai_configs now
       const { data: evoData } = await supabase.from("evolution_settings").select("*").eq("user_id", user!.id).maybeSingle();
       if (evoData) {
         setFields(f => ({
@@ -148,10 +151,16 @@ export default function ConnectionSteps({ onLog, onInstanceCreated }: Connection
 
   const upsertConfig = async (data: Record<string, any>) => {
     if (!user) return;
-    const { error } = await supabase.from("configuracoes_ia").upsert({ ...data, user_id: user.id }, { onConflict: "user_id" });
+    
+    // Map old field names to new table structure
+    const mappedData: Record<string, any> = { user_id: user.id };
+    if (data.openai_api_key) mappedData.api_key = data.openai_api_key;
+    if (data.provider_ia) mappedData.provider = data.provider_ia;
+    if (data.instrucoes_sistema) mappedData.instructions = data.instrucoes_sistema;
+    
+    const { error } = await supabase.from("ai_configs").upsert(mappedData, { onConflict: "user_id" });
     if (error) {
-      await supabase.from("configuracoes_ia").delete().eq("user_id", user.id);
-      await supabase.from("configuracoes_ia").insert({ ...data, user_id: user.id });
+      console.error("Erro ao salvar configuração da IA:", error);
     }
   };
 
@@ -181,11 +190,10 @@ export default function ConnectionSteps({ onLog, onInstanceCreated }: Connection
 
     setValidating(false);
     if (result.valid) {
-      await upsertConfig({ 
+      await upsertConfig({
         openai_api_key: fields.aiKey,
-        // Simulamos o campo no payload para o backend (mesmo que a coluna não exista, o Supabase ignora ou o upsert trata)
-        provider_ia: fields.aiProvider 
-      } as any);
+        provider_ia: fields.aiProvider
+      });
       setCompleted(prev => ({ ...prev, step1: true }));
       setCurrentStep(2);
       onLog({ type: "success", message: `Chave ${fields.aiProvider === 'claude' ? 'Claude' : 'Gemini'} validada e salva!` });
