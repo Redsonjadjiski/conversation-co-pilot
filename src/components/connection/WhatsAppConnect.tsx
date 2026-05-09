@@ -27,9 +27,10 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { toast } = useToast();
 
-  const baseUrl = (serverUrl || DEFAULT_SERVER).replace(/\/+$/, "");
-  const apiKey = evolutionApiKey || DEFAULT_API_KEY;
-  const instName = instanceName || "atendeal";
+  // Hardcoded values to ensure the exact request is made as requested
+  const baseUrl = "https://evolution-api-production-c130.up.railway.app";
+  const apiKey = "redson2026secure";
+  const instName = "atendeal_novo";
 
   const stopPolling = useCallback(() => {
     if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
