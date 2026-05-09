@@ -17,7 +17,7 @@ type ConnectionStatus = "disconnected" | "connecting" | "qr_ready" | "connected"
 import { supabase } from "@/integrations/supabase/client";
 const PROXY_URL = "https://gfqwoqrcjxusedstikuo.supabase.co/functions/v1/evolution-proxy";
 const DEFAULT_SERVER = "https://evolution-api-production-c130.up.railway.app";
-const DEFAULT_API_KEY = "redson2026secure";
+const DEFAULT_API_KEY = "atendeai2026";
 
 export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceName, onLog, autoConnect }: WhatsAppConnectProps) {
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
@@ -29,8 +29,8 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
 
   // Hardcoded values to ensure the exact request is made as requested
   const baseUrl = "https://evolution-api-production-c130.up.railway.app";
-  const apiKey = "redson2026secure";
-  const instName = "atendeal_novo";
+  const apiKey = "atendeai2026";
+  const instName = "atendeal_v2";
 
   const stopPolling = useCallback(() => {
     if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
@@ -64,7 +64,12 @@ export default function WhatsAppConnect({ serverUrl, evolutionApiKey, instanceNa
         body: {
           endpoint: "/instance/create",
           method: "POST",
-          body: { instanceName: instName, token: finalKey, qrcode: true }
+          body: { 
+            instanceName: instName, 
+            token: finalKey, 
+            qrcode: true,
+            integration: "WHATSAPP-BAILEYS"
+          }
         }
       });
       

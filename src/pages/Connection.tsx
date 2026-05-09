@@ -13,9 +13,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { LogEntry } from "@/components/connection/ConnectionSteps";
 
 const DEFAULT_SERVER = "https://evolution-api-production-c130.up.railway.app";
-const DEFAULT_API_KEY = "redson2026secure";
+const DEFAULT_API_KEY = "atendeai2026";
 
-const getUserInstanceName = (userId: string) => "atendeal_novo";
+const getUserInstanceName = (userId: string) => "atendeal_v2";
 
 interface EvolutionInstance {
   id: string;
