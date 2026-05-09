@@ -158,7 +158,7 @@ export default function ConnectionSteps({ onLog, onInstanceCreated }: Connection
     if (data.provider_ia) mappedData.provider = data.provider_ia;
     if (data.instrucoes_sistema) mappedData.instructions = data.instrucoes_sistema;
     
-    const { error } = await supabase.from("ai_configs").upsert(mappedData, { onConflict: "user_id" });
+    const { error } = await supabase.from("ai_configs").upsert([mappedData] as any, { onConflict: "user_id" });
     if (error) {
       console.error("Erro ao salvar configuração da IA:", error);
     }
