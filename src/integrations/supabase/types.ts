@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_configs: {
+        Row: {
+          api_key: string | null
+          company_name: string | null
+          created_at: string
+          id: string
+          instructions: string | null
+          provider: string | null
+          tone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_key?: string | null
+          company_name?: string | null
+          created_at?: string
+          id?: string
+          instructions?: string | null
+          provider?: string | null
+          tone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_key?: string | null
+          company_name?: string | null
+          created_at?: string
+          id?: string
+          instructions?: string | null
+          provider?: string | null
+          tone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       configuracoes_ia: {
         Row: {
           evolution_api_key: string | null
