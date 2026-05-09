@@ -42,14 +42,20 @@ export default function AIBrain() {
     if (!user) return;
     const load = async () => {
       setLoading(true);
-      const { data } = await supabase.from("configuracoes_ia").select("*").eq("user_id", user.id).maybeSingle();
-       if (data) {
-         setKnowledge(data.instrucoes_sistema ?? "");
-         setCompanyName(data.nome_empresa ?? "");
-         setAiKey(data.openai_api_key ?? "");
-         setAiProvider((data as any).provider_ia || "claude");
-       }
-      setLoading(false);
+      try {
+        const { data } = await supabase.from("ai_configs").select("*").eq("user_id", user.id).maybeSingle();
+        if (data) {
+          setKnowledge(data.instructions ?? "");
+          setCompanyName(data.company_name ?? "");
+          setAiKey(data.api_key ?? "");
+          setAiProvider(data.provider || "claude");
+          setPersonality(data.tone || "friendly");
+        }
+      } catch (error) {
+        console.error("Erro ao carregar configurações:", error);
+      } finally {
+        setLoading(false);
+      }
     };
     load();
   }, [user]);
@@ -60,21 +66,31 @@ export default function AIBrain() {
   const sanitizeText = (text: string) => text.replace(/[ \t]+/g, " ").replace(/(\r?\n){3,}/g, "\n\n").replace(/^ +| +$/gm, "").trim();
 
   const handleSave = async () => {
-    if (!user || !knowledge.trim()) { toast.error("Insira o conhecimento antes de salvar."); return; }
+    if (!user || !knowledge.trim()) {
+      toast.error("Insira o conhecimento antes de salvar.");
+      return;
+    }
     const sanitized = sanitizeText(knowledge);
     setKnowledge(sanitized);
     setSaving(true);
     try {
-      const { error } = await supabase.from("configuracoes_ia").upsert({
-        user_id: user.id, instrucoes_sistema: sanitized, nome_empresa: companyName || "Atende AI",
+      const { error } = await supabase.from("ai_configs").upsert({
+        user_id: user.id,
+        instructions: sanitized,
+        company_name: companyName || "Atende AI",
+        tone: personality,
+        provider: aiProvider,
+        api_key: aiKey
       }, { onConflict: "user_id" });
-      if (error) {
-        await supabase.from("configuracoes_ia").delete().eq("user_id", user.id);
-        await supabase.from("configuracoes_ia").insert({ user_id: user.id, instrucoes_sistema: sanitized, nome_empresa: companyName || "Atende AI" });
-      }
-      toast.success("Conhecimento salvo!");
-    } catch (err: any) { toast.error("Erro: " + (err.message || "Tente novamente.")); }
-    finally { setSaving(false); }
+
+      if (error) throw error;
+      toast.success("Configurações da IA salvas com sucesso!");
+    } catch (err: any) {
+      console.error("Erro ao salvar:", err);
+      toast.error("Erro ao salvar: " + (err.message || "Tente novamente."));
+    } finally {
+      setSaving(false);
+    }
   };
 
    const handleTestSend = async () => {
