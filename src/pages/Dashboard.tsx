@@ -33,13 +33,13 @@ export default function Dashboard() {
     if (!user) return;
     async function fetchData() {
       const { data: config } = await supabase
-        .from("configuracoes_ia")
-        .select("nome_empresa, openai_api_key, webhook_make")
+        .from("ai_configs")
+        .select("company_name, api_key")
         .eq("user_id", user!.id)
         .maybeSingle();
 
-      if (config?.nome_empresa) setNomeEmpresa(config.nome_empresa);
-      setHasConfig(!!(config?.openai_api_key && config?.webhook_make));
+      if (config?.company_name) setNomeEmpresa(config.company_name);
+      setHasConfig(!!config?.api_key);
 
       const { data: leads } = await supabase
         .from("leads")
@@ -80,7 +80,7 @@ export default function Dashboard() {
           <AlertTitle>Atendimento Desativado</AlertTitle>
           <AlertDescription className="space-y-2">
             {!subscription.subscribed && <p>Você ainda não possui uma assinatura ativa.</p>}
-            {!hasConfig && <p>Suas chaves de API ou webhook não foram configurados.</p>}
+             {!hasConfig && <p>Suas chaves de API não foram configuradas.</p>}
             <div className="flex gap-2 mt-2">
               {!subscription.subscribed && (
                 <Button size="sm" variant="outline" className="rounded-xl" onClick={() => navigate("/subscription")}>Ver Planos</Button>
